@@ -1,0 +1,20 @@
+[
+  {
+    "id_usuario": "201912345",
+    "password": "admin123",
+    "nombre_completo": "Administrador Sistema",
+    "correo": "admin@buap.mx",
+    "telefono": "2221234567",
+    "sexo": "Masculino",
+    "carrera": "Ingeniería en TI"
+  },
+  {
+    "id_usuario": "202268439",
+    "password": "samd",
+    "nombre_completo": "Jovany Solis Ortiz",
+    "correo": "jovany.solis@alumno.buap.mx",
+    "telefono": "2227654321",
+    "sexo": "Masculino",
+    "carrera": "Ingeniería en TI"
+  }
+]

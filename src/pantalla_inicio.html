@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil IT - Jovany Solis</title>
+    <link rel="stylesheet" href="diseños.css">
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Jovany Solis Ortiz</h1>
+        <p><strong>Materia:</strong> Modelo de Desarrollo Web | <strong>Docente:</strong> Profesor Rafael</p>
+        <div id="clock">Cargando...</div>
+    </header>
+
+    <div class="section-title">Información Académica</div>
+    <div class="data-list">
+        <div class="data-item"><span class="label">Institución:</span> <span class="value">BUAP</span></div>
+        <div class="data-item"><span class="label">Carrera:</span> <span class="value">Ingeniería en TI</span></div>
+        <div class="data-item"><span class="label">Semestre:</span> <span class="value">7mo Semestre</span></div>
+        <div class="data-item"><span class="label">Promedio:</span> <span class="value highlight">9.54</span></div>
+    </div>
+
+    <div class="section-title">Datos Personales y Biometría</div>
+    <div class="data-list">
+        <div class="data-item"><span class="label">Edad:</span> <span class="value">23 años</span></div>
+        <div class="data-item"><span class="label">Origen:</span> <span class="value">Tlaxcala, México</span></div>
+        <div class="data-item"><span class="label">Sangre:</span> <span class="value">A+</span></div>
+        <div class="data-item"><span class="label">Estatura:</span> <span class="value">1.60 m</span></div>
+        <div class="data-item"><span class="label">Peso:</span> <span id="curWeight" class="value">60.2 kg</span></div>
+        <div class="data-item"><span class="label">Masa Muscular:</span> <span class="value">29.3 kg</span></div>
+        <div class="data-item"><span class="label">Grasa Corporal:</span> <span class="value">14%</span></div>
+        <div class="data-item"><span class="label">Brazo:</span> <span class="value">36 cm</span></div>
+        <div class="data-item"><span class="label">Cintura:</span> <span class="value">72 cm</span></div>
+        <div class="data-item"><span class="label">Pecho / Espalda:</span> <span class="value">105 cm</span></div>
+    </div>
+
+    <div class="section-title">Récords Deportivos</div>
+    <div class="data-list">
+        <div class="data-item"><span class="label">Running 3km:</span> <span class="value pr">12:56 mns</span></div>
+        <div class="data-item"><span class="label">Running 5km:</span> <span class="value pr">22:26 mns</span></div>
+        <div class="data-item"><span class="label">Press Banca:</span> <span id="curBench" class="value pr">110 kg</span></div>
+        <div class="data-item"><span class="label">Sentadilla Libre:</span> <span class="value pr">180 kg</span></div>
+        <div class="data-item"><span class="label">Sentadilla Hack:</span> <span class="value pr">200 kg</span></div>
+        <div class="data-item"><span class="label">Prensa Pierna:</span> <span class="value pr">320 kg</span></div>
+    </div>
+
+    <div class="section-title">Lógica de Programación (JS)</div>
+    <div class="console-box">
+        <div class="controls">
+            <button onclick="checkStats()">Ejecutar Diagnóstico</button>
+            <button onclick="convertToLbs()">Convertir Unidades</button>
+        </div>
+        <div id="output">Consola lista para recibir instrucciones...</div>
+        <button onclick="toggleDarkMode()" id="darkModeBtn" style="margin-top: 15px; width: 100%;"> Modo Oscuro</button>
+    </div>
+
+    <footer>
+        Benemérita Universidad Autónoma de Puebla | 2026
+    </footer>
+</div>
+
+<script src="pruebas.js"></script>
+
+</body>
+</html>
