@@ -101,4 +101,15 @@ export class AuthService {
       return [];
     }
   }
+
+  async recoverPassword(correo: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ success: boolean; message?: string }>(`${this.API_URL}/forgot-password`, { correo })
+      );
+      return response;
+    } catch (error) {
+      return { success: false, message: 'Error de conexión con el servidor' };
+    }
+  }
 }

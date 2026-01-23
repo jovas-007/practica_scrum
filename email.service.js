@@ -16,8 +16,8 @@ const USERS_FILE = path.join(__dirname, 'users.json');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'tu_email@gmail.com',  // ← Cambia esto por tu Gmail
-    pass: 'tu contraseña de aplicación'     // ← Cambia esto por tu contraseña de aplicación de Gmail (16 caracteres)
+    user: 'secretaria.instituto.aca@gmail.com',  // ← Cambia esto por tu Gmail
+    pass: 'ffhd mnft jbnj cglc'     // ← Cambia esto por tu contraseña de aplicación de Gmail (16 caracteres)
   }
 });
 
@@ -45,7 +45,7 @@ async function sendReminderEmail(task, user) {
   });
 
   const mailOptions = {
-    from: 'tu_email@gmail.com', // Debe coincidir con el email configurado arriba
+    from: 'secretaria.instituto.aca@gmail.com', // Debe coincidir con el email configurado arriba
     to: user.correo,
     subject: `Recordatorio: Tarea "${task.nombre_tarea}" - Entrega mañana`,
     html: `
@@ -135,9 +135,54 @@ async function testReminders() {
   await checkAndSendReminders();
 }
 
+// Función para enviar contraseña por email
+async function sendPasswordEmail(user) {
+  const mailOptions = {
+    from: 'secretaria.instituto.aca@gmail.com',
+    to: user.correo,
+    subject: '🔑 Recuperación de Contraseña - Sistema de Gestión de Tareas',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">🔑 Recuperación de Contraseña</h2>
+        <p>Hola <strong>${user.nombre_completo}</strong>,</p>
+        
+        <p>Has solicitado recuperar tu contraseña. Aquí están tus datos de acceso:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #3498db; margin: 20px 0;">
+          <p><strong>📋 Matrícula:</strong> ${user.id_usuario}</p>
+          <p><strong>🔐 Contraseña:</strong> ${user.password}</p>
+        </div>
+        
+        <p style="color: #e74c3c; font-weight: bold;">
+          ⚠️ Por seguridad, te recomendamos cambiar tu contraseña después de iniciar sesión.
+        </p>
+        
+        <p>Si no solicitaste esta recuperación, por favor ignora este mensaje.</p>
+        
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+        
+        <p style="color: #7f8c8d; font-size: 12px;">
+          Este es un mensaje automático del Sistema de Gestión de Tareas Escolares - BUAP.
+          <br>Por favor, no respondas a este correo.
+        </p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Contraseña enviada a ${user.correo}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error al enviar contraseña a ${user.correo}:`, error.message);
+    return false;
+  }
+}
+
 module.exports = {
   startReminderScheduler,
   checkAndSendReminders,
   testReminders,
-  sendReminderEmail
+  sendReminderEmail,
+  sendPasswordEmail
 };

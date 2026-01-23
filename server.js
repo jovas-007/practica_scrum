@@ -84,8 +84,9 @@ app.post('/api/login', async (req, res) => {
     const users = await readUsers();
     console.log('Users in DB:', users);
     
+    // Buscar por matrícula o correo
     const user = users.find(u => 
-      u.id_usuario === id_usuario && 
+      (u.id_usuario === id_usuario || u.correo.toLowerCase() === id_usuario.toLowerCase()) && 
       u.password === password
     );
 
@@ -98,7 +99,7 @@ app.post('/api/login', async (req, res) => {
       });
     } else {
       console.log('Login failed for:', id_usuario);
-      res.json({ success: false, message: 'Matrícula o contraseña incorrectos' });
+      res.json({ success: false, message: 'Matrícula/Correo o contraseña incorrectos' });
     }
   } catch (error) {
     console.error('Login error:', error);
@@ -112,15 +113,27 @@ app.post('/api/register', async (req, res) => {
     const { id_usuario, password, nombre_completo, correo, telefono, sexo, carrera } = req.body;
     const users = await readUsers();
     
+    // Verificar si la matrícula ya existe
     const existingUser = users.find(u => u.id_usuario === id_usuario);
-
     if (existingUser) {
-      res.json({ success: false, message: 'La matrícula ya está registrada' });
-    } else {
-      users.push({ id_usuario, password, nombre_completo, correo, telefono, sexo, carrera });
-      await saveUsers(users);
-      res.json({ success: true });
+      return res.json({ success: false, message: 'La matrícula ya está registrada' });
     }
+
+    // Verificar si el correo ya existe
+    const existingEmail = users.find(u => u.correo.toLowerCase() === correo.toLowerCase());
+    if (existingEmail) {
+      return res.json({ success: false, message: 'El correo electrónico ya está registrado' });
+    }
+
+    // Validar formato de correo
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(correo)) {
+      return res.json({ success: false, message: 'Formato de correo electrónico inválido' });
+    }
+
+    users.push({ id_usuario, password, nombre_completo, correo, telefono, sexo, carrera });
+    await saveUsers(users);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error en el servidor' });
   }
@@ -228,6 +241,28 @@ app.post('/api/test-reminders', async (req, res) => {
     res.json({ success: true, message: 'Recordatorios de prueba enviados' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al enviar recordatorios' });
+  }
+});
+
+// Endpoint para recuperar contraseña
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const { correo } = req.body;
+    const users = await readUsers();
+    
+    const user = users.find(u => u.correo.toLowerCase() === correo.toLowerCase());
+    
+    if (user) {
+      // Enviar email con la contraseña
+      const { sendPasswordEmail } = require('./email.service');
+      await sendPasswordEmail(user);
+      res.json({ success: true, message: 'Contraseña enviada al correo' });
+    } else {
+      res.json({ success: false, message: 'El correo no está registrado en el sistema' });
+    }
+  } catch (error) {
+    console.error('Error en recuperación de contraseña:', error);
+    res.status(500).json({ success: false, message: 'Error al recuperar contraseña' });
   }
 });
 
