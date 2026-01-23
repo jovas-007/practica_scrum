@@ -3,8 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfil IT - Jovany Solis</title>
+    <title>Sistema de Gestión de Tareas Escolares</title>
     <link rel="stylesheet" href="diseños.css">
+    <style>
+        .tareas-destacado {
+            background: linear-gradient(135deg, #002855 0%, #004080 100%);
+            border-left: 5px solid #00d4ff;
+            box-shadow: 0 6px 20px rgba(0, 64, 128, 0.5);
+            transform: scale(1.02);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tareas-destacado:hover {
+            background: linear-gradient(135deg, #003366 0%, #0059b3 100%);
+            box-shadow: 0 8px 25px rgba(0, 100, 180, 0.6);
+            transform: scale(1.05);
+            border-left: 5px solid #00ffff;
+        }
+        
+        .tareas-destacado:active {
+            transform: scale(0.98);
+            box-shadow: 0 3px 10px rgba(0, 64, 128, 0.4);
+        }
+        
+        button {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            filter: brightness(1.1);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+    </style>
 </head>
 <body>
 
@@ -12,27 +51,13 @@
     <header>
         <h1 id="userName">Bienvenido</h1>
         <p><strong>Sistema de Gestión de Tareas Escolares</strong></p>
-        <div id="clock">Cargando...</div>
-        <button onclick="cerrarSesion()" style="margin-top: 10px; background: #e74c3c;">Cerrar Sesión</button>
+        <button onclick="cerrarSesion()" style="margin-top: 10px; background: #e74c3c; color: white;">Cerrar Sesión</button>
     </header>
 
-    <div class="section-title">Menú Principal</div>
     <div class="data-list">
-        <div class="data-item menu-item" onclick="irATareas()">
-            <span class="label">Mis Tareas</span>
-            <span class="value">Ver y gestionar tus tareas asignadas</span>
-        </div>
-        <div class="data-item menu-item disabled">
-            <span class="label">Materias</span>
-            <span class="value">Próximamente</span>
-        </div>
-        <div class="data-item menu-item disabled">
-            <span class="label">Estadísticas</span>
-            <span class="value">Próximamente</span>
-        </div>
-        <div class="data-item menu-item disabled">
-            <span class="label">Perfil</span>
-            <span class="value">Próximamente</span>
+        <div class="data-item menu-item tareas-destacado" onclick="irATareas()">
+            <span class="label" style="font-size: 18px; font-weight: bold; color: white;">Mis Tareas</span>
+            <span class="value" style="font-size: 14px; color: #e0f2ff;">Ver y gestionar tus tareas asignadas</span>
         </div>
     </div>
 
@@ -41,7 +66,7 @@
         <div id="output">
             <p>Recordatorios automáticos activos</p>
             <p>Los emails se envían 24 horas antes de cada entrega</p>
-            <p>Verificación diaria a las 9:00 AM</p>
+            <p>Verificación diaria a las 10:00 AM</p>
             <p id="userEmail"></p>
         </div>
     </div>
@@ -49,9 +74,7 @@
     <div class="section-title">Información Académica</div>
     <div class="data-list">
         <div class="data-item"><span class="label">Institución:</span> <span class="value">BUAP</span></div>
-        <div class="data-item"><span class="label">Carrera:</span> <span class="value">Ingeniería en TI</span></div>
-        <div class="data-item"><span class="label">Semestre:</span> <span class="value">7mo Semestre</span></div>
-        <div class="data-item"><span class="label">Promedio:</span> <span class="value highlight">9.54</span></div>
+        <div class="data-item"><span class="label">Carrera:</span> <span class="value" id="userCarrera">Cargando...</span></div>
     </div>
 
     <footer>

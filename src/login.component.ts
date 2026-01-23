@@ -20,13 +20,19 @@ import { AuthService } from './auth.service';
         </div>
       </div>
 
-      <div class="auth-card" [class.compact]="showRegister || showForgotPassword">
+      <div class="auth-card" [class.compact]="showRegister || showForgotPassword || showVerifyCode || showResetPassword">
         <div class="card-header">
-          <h2>{{ showForgotPassword ? 'Recuperar Contraseña' : showRegister ? 'Crear Cuenta' : 'Sistema de Gestión de Tareas' }}</h2>
-          <p class="subtitle" *ngIf="!showRegister && !showForgotPassword">Acceso</p>
+          <h2>{{ 
+            showResetPassword ? 'Nueva Contraseña' :
+            showVerifyCode ? 'Verificar Código' :
+            showForgotPassword ? 'Recuperar Contraseña' : 
+            showRegister ? 'Crear Cuenta' : 
+            'Sistema de Gestión de Tareas' 
+          }}</h2>
+          <p class="subtitle" *ngIf="!showRegister && !showForgotPassword && !showVerifyCode && !showResetPassword">Acceso</p>
         </div>
         
-        <form (ngSubmit)="login()" *ngIf="!showRegister && !showForgotPassword">
+        <form (ngSubmit)="login()" *ngIf="!showRegister && !showForgotPassword && !showVerifyCode && !showResetPassword">
           <div class="form-group">
             <label>Matrícula o Correo Electrónico:</label>
             <input 
@@ -73,6 +79,8 @@ import { AuthService } from './auth.service';
               placeholder="9 dígitos"
               pattern="[0-9]{9}"
               maxlength="9"
+              inputmode="numeric"
+              (keypress)="onlyNumbers($event)"
               required>
           </div>
           
@@ -153,6 +161,7 @@ import { AuthService } from './auth.service';
               [(ngModel)]="confirmPassword" 
               name="confirmPassword"
               placeholder="Repita su contraseña"
+              maxlength="15"
               required>
           </div>
           
@@ -169,8 +178,8 @@ import { AuthService } from './auth.service';
           </button>
         </form>
 
-        <form (ngSubmit)="forgotPassword()" *ngIf="showForgotPassword">
-          <p class="forgot-description">Ingresa tu correo electrónico registrado y te enviaremos tu contraseña.</p>
+        <form (ngSubmit)="forgotPassword()" *ngIf="showForgotPassword && !showVerifyCode && !showResetPassword">
+          <p class="forgot-description">Ingresa tu correo electrónico registrado y te enviaremos un código de verificación.</p>
           
           <div class="form-group">
             <label>Correo Electrónico:</label>
@@ -190,10 +199,77 @@ import { AuthService } from './auth.service';
             {{ errorMessage }}
           </div>
           
-          <button type="submit" class="btn-primary">Enviar Contraseña</button>
+          <button type="submit" class="btn-primary">Enviar Código</button>
           <button type="button" class="btn-secondary" (click)="backToLogin()">
             Volver al inicio de sesión
           </button>
+        </form>
+
+        <form (ngSubmit)="verifyCode()" *ngIf="showVerifyCode && !showResetPassword">
+          <p class="forgot-description">Ingresa el código de 6 dígitos que enviamos a tu correo.</p>
+          
+          <div class="form-group">
+            <label>Código de Verificación:</label>
+            <input 
+              type="text" 
+              [(ngModel)]="recoveryCode" 
+              name="recoveryCode"
+              placeholder="123456"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              class="code-input"
+              required>
+            <small class="hint">El código expira en 15 minutos</small>
+          </div>
+          
+          <div class="message success" *ngIf="successMessage">
+            {{ successMessage }}
+          </div>
+          <div class="message error" *ngIf="errorMessage">
+            {{ errorMessage }}
+          </div>
+          
+          <button type="submit" class="btn-primary">Verificar Código</button>
+          <button type="button" class="btn-secondary" (click)="backToLogin()">
+            Cancelar
+          </button>
+        </form>
+
+        <form (ngSubmit)="resetPassword()" *ngIf="showResetPassword">
+          <p class="forgot-description">Ingresa tu nueva contraseña.</p>
+          
+          <div class="form-group">
+            <label>Nueva Contraseña:</label>
+            <input 
+              type="password" 
+              [(ngModel)]="newPassword" 
+              name="newPassword"
+              placeholder="Ejemplo: Hola123!"
+              minlength="8"
+              maxlength="15"
+              required>
+            <small class="hint">8-15 caracteres, debe incluir: letra, número y signo especial</small>
+          </div>
+
+          <div class="form-group">
+            <label>Confirmar Contraseña:</label>
+            <input 
+              type="password" 
+              [(ngModel)]="confirmNewPassword" 
+              name="confirmNewPassword"
+              placeholder="Repite la contraseña"
+              maxlength="15"
+              required>
+          </div>
+          
+          <div class="message success" *ngIf="successMessage">
+            {{ successMessage }}
+          </div>
+          <div class="message error" *ngIf="errorMessage">
+            {{ errorMessage }}
+          </div>
+          
+          <button type="submit" class="btn-primary">Cambiar Contraseña</button>
         </form>
       </div>
     </div>
@@ -340,6 +416,14 @@ import { AuthService } from './auth.service';
       box-shadow: 0 0 0 3px rgba(0, 40, 85, 0.1);
     }
 
+    .code-input {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: 8px;
+      font-family: 'Courier New', monospace;
+    }
+
     .message {
       padding: 12px;
       border-radius: 6px;
@@ -400,6 +484,11 @@ import { AuthService } from './auth.service';
       box-shadow: 0 6px 20px rgba(0, 40, 85, 0.4);
       transform: translateY(-2px);
     }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0, 40, 85, 0.3);
+    }
 
     .btn-secondary {
       background: white;
@@ -410,6 +499,13 @@ import { AuthService } from './auth.service';
     .btn-secondary:hover {
       background: #002855;
       color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 40, 85, 0.2);
+    }
+    
+    .btn-secondary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 5px rgba(0, 40, 85, 0.2);
     }
 
     .btn-link {
@@ -425,6 +521,11 @@ import { AuthService } from './auth.service';
     .btn-link:hover {
       color: #1d4ed8;
       background: transparent;
+      text-decoration: none;
+    }
+    
+    .btn-link:active {
+      color: #1e40af;
     }
   `]
 })
@@ -445,9 +546,22 @@ export class LoginComponent {
   successMessage = '';
   showRegister = false;
   showForgotPassword = false;
+  showVerifyCode = false;
+  showResetPassword = false;
   forgotEmail = '';
+  recoveryCode = '';
+  newPassword = '';
+  confirmNewPassword = '';
 
   constructor(private authService: AuthService) {}
+
+  onlyNumbers(event: KeyboardEvent) {
+    const charCode = event.which ? event.which : event.keyCode;
+    // Solo permite números (0-9)
+    if (charCode < 48 || charCode > 57) {
+      event.preventDefault();
+    }
+  }
 
   validateEmail() {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -472,15 +586,93 @@ export class LoginComponent {
       return;
     }
 
-    const result = await this.authService.recoverPassword(this.forgotEmail);
+    const result = await this.authService.sendRecoveryCode(this.forgotEmail);
     
     if (result.success) {
-      this.successMessage = '¡Contraseña enviada! Revisa tu correo electrónico';
+      this.successMessage = 'Código enviado. Revisa tu correo electrónico';
+      setTimeout(() => {
+        this.showVerifyCode = true;
+        this.successMessage = '';
+      }, 2000);
+    } else {
+      this.errorMessage = result.message || 'Error al enviar código';
+    }
+  }
+
+  async verifyCode() {
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    if (!this.recoveryCode) {
+      this.errorMessage = 'Por favor ingrese el código';
+      return;
+    }
+
+    if (this.recoveryCode.length !== 6) {
+      this.errorMessage = 'El código debe tener 6 dígitos';
+      return;
+    }
+
+    const result = await this.authService.verifyRecoveryCode(this.forgotEmail, this.recoveryCode);
+    
+    if (result.success) {
+      this.successMessage = 'Código verificado correctamente';
+      setTimeout(() => {
+        this.showResetPassword = true;
+        this.successMessage = '';
+      }, 1500);
+    } else {
+      this.errorMessage = result.message || 'Código incorrecto';
+    }
+  }
+
+  async resetPassword() {
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    if (!this.newPassword) {
+      this.errorMessage = 'Por favor ingrese una contraseña';
+      return;
+    }
+
+    if (this.newPassword.length < 8 || this.newPassword.length > 15) {
+      this.errorMessage = 'La contraseña debe tener entre 8 y 15 caracteres';
+      return;
+    }
+
+    if (!/[a-zA-Z]/.test(this.newPassword)) {
+      this.errorMessage = 'La contraseña debe contener al menos una letra';
+      return;
+    }
+
+    if (!/[0-9]/.test(this.newPassword)) {
+      this.errorMessage = 'La contraseña debe contener al menos un número';
+      return;
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(this.newPassword)) {
+      this.errorMessage = 'La contraseña debe contener al menos un signo especial';
+      return;
+    }
+
+    if (this.newPassword !== this.confirmNewPassword) {
+      this.errorMessage = 'Las contraseñas no coinciden';
+      return;
+    }
+
+    const result = await this.authService.resetPassword(
+      this.forgotEmail, 
+      this.recoveryCode, 
+      this.newPassword
+    );
+    
+    if (result.success) {
+      this.successMessage = 'Contraseña actualizada correctamente. Redirigiendo...';
       setTimeout(() => {
         this.backToLogin();
-      }, 3000);
+      }, 2000);
     } else {
-      this.errorMessage = result.message || 'Error al recuperar contraseña';
+      this.errorMessage = result.message || 'Error al cambiar contraseña';
     }
   }
 
@@ -539,9 +731,21 @@ export class LoginComponent {
       return;
     }
 
-    // Validación: contraseña alfanumérica
-    if (!/^[a-zA-Z0-9]+$/.test(this.newUser.password)) {
-      this.errorMessage = 'La contraseña debe ser alfanumérica (solo letras y números)';
+    // Validación: debe contener al menos una letra
+    if (!/[a-zA-Z]/.test(this.newUser.password)) {
+      this.errorMessage = 'La contraseña debe contener al menos una letra';
+      return;
+    }
+
+    // Validación: debe contener al menos un número
+    if (!/[0-9]/.test(this.newUser.password)) {
+      this.errorMessage = 'La contraseña debe contener al menos un número';
+      return;
+    }
+
+    // Validación: debe contener al menos un signo especial
+    if (!/[^a-zA-Z0-9]/.test(this.newUser.password)) {
+      this.errorMessage = 'La contraseña debe contener al menos un signo especial';
       return;
     }
 
@@ -566,6 +770,8 @@ export class LoginComponent {
   backToLogin() {
     this.showRegister = false;
     this.showForgotPassword = false;
+    this.showVerifyCode = false;
+    this.showResetPassword = false;
     this.newUser = {
       id_usuario: '',
       password: '',
@@ -577,6 +783,9 @@ export class LoginComponent {
     };
     this.confirmPassword = '';
     this.forgotEmail = '';
+    this.recoveryCode = '';
+    this.newPassword = '';
+    this.confirmNewPassword = '';
     this.errorMessage = '';
     this.successMessage = '';
   }

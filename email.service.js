@@ -6,6 +6,15 @@ const path = require('path');
 const TASKS_FILE = path.join(__dirname, 'tasks.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
 
+// Almacenamiento temporal de códigos de recuperación
+// Estructura: { correo: { code: '123456', expires: timestamp } }
+const recoveryCodes = new Map();
+
+// Generar código aleatorio de 6 dígitos
+function generateRecoveryCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 // Configuración del transporte de email
 // IMPORTANTE: Usa Gmail con contraseña de aplicación
 // Para crear contraseña de aplicación de Gmail:
@@ -118,15 +127,15 @@ async function checkAndSendReminders() {
   }
 }
 
-// Programar verificación diaria a las 9:00 AM
+// Programar verificación diaria a las 10:00 AM
 function startReminderScheduler() {
-  // Ejecutar cada día a las 9:00 AM
-  cron.schedule('0 9 * * *', () => {
+  // Ejecutar cada día a las 10:00 AM
+  cron.schedule('0 10 * * *', () => {
     console.log('\n⏰ Ejecutando verificación programada de tareas...');
     checkAndSendReminders();
   });
 
-  console.log('✅ Scheduler de recordatorios iniciado - Verificará tareas diariamente a las 9:00 AM');
+  console.log('✅ Scheduler de recordatorios iniciado - Verificará tareas diariamente a las 10:00 AM');
 }
 
 // Función para probar el envío inmediato (útil para desarrollo)
@@ -136,26 +145,27 @@ async function testReminders() {
 }
 
 // Función para enviar contraseña por email
-async function sendPasswordEmail(user) {
+async function sendRecoveryCodeEmail(user, code) {
   const mailOptions = {
     from: 'secretaria.instituto.aca@gmail.com',
     to: user.correo,
-    subject: '🔑 Recuperación de Contraseña - Sistema de Gestión de Tareas',
+    subject: '🔑 Código de Recuperación - Sistema de Gestión de Tareas',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">🔑 Recuperación de Contraseña</h2>
+        <h2 style="color: #2c3e50;">🔑 Código de Recuperación de Contraseña</h2>
         <p>Hola <strong>${user.nombre_completo}</strong>,</p>
         
-        <p>Has solicitado recuperar tu contraseña. Aquí están tus datos de acceso:</p>
+        <p>Has solicitado recuperar tu contraseña. Tu código de verificación es:</p>
         
-        <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #3498db; margin: 20px 0;">
-          <p><strong>📋 Matrícula:</strong> ${user.id_usuario}</p>
-          <p><strong>🔐 Contraseña:</strong> ${user.password}</p>
+        <div style="background-color: #f8f9fa; padding: 30px; border-left: 4px solid #3498db; margin: 20px 0; text-align: center;">
+          <h1 style="color: #3498db; font-size: 48px; margin: 0; letter-spacing: 8px;">${code}</h1>
         </div>
         
         <p style="color: #e74c3c; font-weight: bold;">
-          ⚠️ Por seguridad, te recomendamos cambiar tu contraseña después de iniciar sesión.
+          ⚠️ Este código expira en 15 minutos.
         </p>
+        
+        <p>Ingresa este código en la página de recuperación para continuar.</p>
         
         <p>Si no solicitaste esta recuperación, por favor ignora este mensaje.</p>
         
@@ -184,5 +194,7 @@ module.exports = {
   checkAndSendReminders,
   testReminders,
   sendReminderEmail,
-  sendPasswordEmail
+  sendRecoveryCodeEmail,
+  generateRecoveryCode,
+  recoveryCodes
 };

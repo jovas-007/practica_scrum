@@ -112,4 +112,37 @@ export class AuthService {
       return { success: false, message: 'Error de conexión con el servidor' };
     }
   }
+
+  async sendRecoveryCode(correo: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ success: boolean; message?: string }>(`${this.API_URL}/forgot-password`, { correo })
+      );
+      return response;
+    } catch (error) {
+      return { success: false, message: 'Error de conexión con el servidor' };
+    }
+  }
+
+  async verifyRecoveryCode(correo: string, code: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ success: boolean; message?: string }>(`${this.API_URL}/verify-recovery-code`, { correo, code })
+      );
+      return response;
+    } catch (error) {
+      return { success: false, message: 'Error de conexión con el servidor' };
+    }
+  }
+
+  async resetPassword(correo: string, code: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ success: boolean; message?: string }>(`${this.API_URL}/reset-password`, { correo, code, newPassword })
+      );
+      return response;
+    } catch (error) {
+      return { success: false, message: 'Error de conexión con el servidor' };
+    }
+  }
 }

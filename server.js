@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const fs = require('fs').promises;
 const path = require('path');
 const { startReminderScheduler, testReminders } = require('./email.service');
@@ -8,6 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const USERS_FILE = path.join(__dirname, 'users.json');
 const TASKS_FILE = path.join(__dirname, 'tasks.json');
+const SALT_ROUNDS = 10;
 
 app.use(cors());
 app.use(express.json());
@@ -82,23 +84,29 @@ app.post('/api/login', async (req, res) => {
     console.log('Login request:', req.body);
     const { id_usuario, password } = req.body;
     const users = await readUsers();
-    console.log('Users in DB:', users);
     
     // Buscar por matrícula o correo
     const user = users.find(u => 
-      (u.id_usuario === id_usuario || u.correo.toLowerCase() === id_usuario.toLowerCase()) && 
-      u.password === password
+      u.id_usuario === id_usuario || u.correo.toLowerCase() === id_usuario.toLowerCase()
     );
 
     if (user) {
-      console.log('Login successful for:', user.id_usuario);
-      res.json({ 
-        success: true, 
-        id_usuario: user.id_usuario,
-        nombre_completo: user.nombre_completo
-      });
+      // Comparar contraseña con hash
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      
+      if (passwordMatch) {
+        console.log('Login successful for:', user.id_usuario);
+        res.json({ 
+          success: true, 
+          id_usuario: user.id_usuario,
+          nombre_completo: user.nombre_completo
+        });
+      } else {
+        console.log('Login failed - incorrect password for:', id_usuario);
+        res.json({ success: false, message: 'Matrícula/Correo o contraseña incorrectos' });
+      }
     } else {
-      console.log('Login failed for:', id_usuario);
+      console.log('Login failed - user not found:', id_usuario);
       res.json({ success: false, message: 'Matrícula/Correo o contraseña incorrectos' });
     }
   } catch (error) {
@@ -131,7 +139,27 @@ app.post('/api/register', async (req, res) => {
       return res.json({ success: false, message: 'Formato de correo electrónico inválido' });
     }
 
-    users.push({ id_usuario, password, nombre_completo, correo, telefono, sexo, carrera });
+    // Validar formato de contraseña
+    if (!password || password.length < 8 || password.length > 15) {
+      return res.json({ success: false, message: 'La contraseña debe tener entre 8 y 15 caracteres' });
+    }
+
+    if (!/[a-zA-Z]/.test(password)) {
+      return res.json({ success: false, message: 'La contraseña debe contener al menos una letra' });
+    }
+
+    if (!/[0-9]/.test(password)) {
+      return res.json({ success: false, message: 'La contraseña debe contener al menos un número' });
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      return res.json({ success: false, message: 'La contraseña debe contener al menos un signo especial' });
+    }
+
+    // Hashear contraseña antes de guardar
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+    users.push({ id_usuario, password: hashedPassword, nombre_completo, correo, telefono, sexo, carrera });
     await saveUsers(users);
     res.json({ success: true });
   } catch (error) {
@@ -253,16 +281,116 @@ app.post('/api/forgot-password', async (req, res) => {
     const user = users.find(u => u.correo.toLowerCase() === correo.toLowerCase());
     
     if (user) {
-      // Enviar email con la contraseña
-      const { sendPasswordEmail } = require('./email.service');
-      await sendPasswordEmail(user);
-      res.json({ success: true, message: 'Contraseña enviada al correo' });
+      // Generar código de recuperación
+      const { generateRecoveryCode, sendRecoveryCodeEmail, recoveryCodes } = require('./email.service');
+      const code = generateRecoveryCode();
+      
+      // Guardar código con expiración de 15 minutos
+      const expires = Date.now() + 15 * 60 * 1000;
+      recoveryCodes.set(correo.toLowerCase(), { 
+        code, 
+        expires,
+        id_usuario: user.id_usuario 
+      });
+      
+      // Enviar email con el código
+      await sendRecoveryCodeEmail(user, code);
+      res.json({ success: true, message: 'Código de recuperación enviado al correo' });
     } else {
       res.json({ success: false, message: 'El correo no está registrado en el sistema' });
     }
   } catch (error) {
     console.error('Error en recuperación de contraseña:', error);
     res.status(500).json({ success: false, message: 'Error al recuperar contraseña' });
+  }
+});
+
+// Verificar código de recuperación
+app.post('/api/verify-recovery-code', async (req, res) => {
+  try {
+    const { correo, code } = req.body;
+    const { recoveryCodes } = require('./email.service');
+    
+    const storedData = recoveryCodes.get(correo.toLowerCase());
+    
+    if (!storedData) {
+      return res.json({ success: false, message: 'No hay código de recuperación activo para este correo' });
+    }
+    
+    if (Date.now() > storedData.expires) {
+      recoveryCodes.delete(correo.toLowerCase());
+      return res.json({ success: false, message: 'El código ha expirado. Solicita uno nuevo' });
+    }
+    
+    if (storedData.code !== code) {
+      return res.json({ success: false, message: 'Código incorrecto' });
+    }
+    
+    res.json({ success: true, message: 'Código verificado correctamente' });
+  } catch (error) {
+    console.error('Error al verificar código:', error);
+    res.status(500).json({ success: false, message: 'Error al verificar código' });
+  }
+});
+
+// Cambiar contraseña con código verificado
+app.post('/api/reset-password', async (req, res) => {
+  try {
+    const { correo, code, newPassword } = req.body;
+    const { recoveryCodes } = require('./email.service');
+    
+    const storedData = recoveryCodes.get(correo.toLowerCase());
+    
+    if (!storedData) {
+      return res.json({ success: false, message: 'No hay código de recuperación activo' });
+    }
+    
+    if (Date.now() > storedData.expires) {
+      recoveryCodes.delete(correo.toLowerCase());
+      return res.json({ success: false, message: 'El código ha expirado' });
+    }
+    
+    if (storedData.code !== code) {
+      return res.json({ success: false, message: 'Código incorrecto' });
+    }
+    
+    // Validar formato de nueva contraseña
+    if (!newPassword || newPassword.length < 8 || newPassword.length > 15) {
+      return res.json({ success: false, message: 'La contraseña debe tener entre 8 y 15 caracteres' });
+    }
+
+    if (!/[a-zA-Z]/.test(newPassword)) {
+      return res.json({ success: false, message: 'La contraseña debe contener al menos una letra' });
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      return res.json({ success: false, message: 'La contraseña debe contener al menos un número' });
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(newPassword)) {
+      return res.json({ success: false, message: 'La contraseña debe contener al menos un signo especial' });
+    }
+    
+    // Actualizar contraseña
+    const users = await readUsers();
+    const userIndex = users.findIndex(u => u.correo.toLowerCase() === correo.toLowerCase());
+    
+    if (userIndex === -1) {
+      return res.json({ success: false, message: 'Usuario no encontrado' });
+    }
+    
+    // Hashear nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    users[userIndex].password = hashedPassword;
+    await saveUsers(users);
+    
+    // Eliminar código usado
+    recoveryCodes.delete(correo.toLowerCase());
+    
+    res.json({ success: true, message: 'Contraseña actualizada correctamente' });
+  } catch (error) {
+    console.error('Error al cambiar contraseña:', error);
+    res.status(500).json({ success: false, message: 'Error al cambiar contraseña' });
   }
 });
 

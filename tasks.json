@@ -3,21 +3,21 @@
     "id_tarea": "TAREA001",
     "nombre_tarea": "Implementar sistema de login",
     "materia": "Metodologías de Desarrollo Web",
-    "fecha_entrega": "2026-01-25T23:59:00",
+    "fecha_entrega": "2026-01-24T23:59:00",
     "usuarios_asignados": ["201912345", "202268439"]
   },
   {
     "id_tarea": "TAREA002",
     "nombre_tarea": "Diseño de base de datos",
     "materia": "Base de Datos Avanzadas",
-    "fecha_entrega": "2026-01-22T18:00:00",
+    "fecha_entrega": "2026-01-24T18:00:00",
     "usuarios_asignados": ["202268439", "202300001"]
   },
   {
     "id_tarea": "TAREA003",
     "nombre_tarea": "Práctica SCRUM - Sprint 1",
     "materia": "Metodologías de Desarrollo Web",
-    "fecha_entrega": "2026-01-21T20:00:00",
+    "fecha_entrega": "2026-01-24T20:00:00",
     "usuarios_asignados": ["202300001"]
   }
 ]

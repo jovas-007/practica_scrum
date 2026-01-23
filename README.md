@@ -1,13 +1,12 @@
-# Sistema de Autenticación - Práctica SCRUM
+# Sistema de Gestión de Tareas Escolares - Práctica SCRUM
 
-Este es un proyecto de sistema de autenticación desarrollado con Angular y Node.js/Express.
+Sistema completo de gestión de tareas con autenticación, recordatorios automáticos por email y recuperación de contraseña desarrollado con Angular y Node.js/Express.
 
 ## 📋 Requisitos Previos
 
-Antes de comenzar, asegúrate de tener instalado:
-
 - [Node.js](https://nodejs.org/) (versión 18 o superior)
 - [npm](https://www.npmjs.com/) (se instala automáticamente con Node.js)
+- Cuenta de Gmail con contraseña de aplicación (para recordatorios por email)
 
 ## 🚀 Instalación
 
@@ -15,13 +14,34 @@ Antes de comenzar, asegúrate de tener instalado:
 
 2. **Instala las dependencias**
 
-   Abre una terminal en la carpeta del proyecto y ejecuta:
-
    ```bash
    npm install
    ```
 
-   Esto instalará todas las dependencias necesarias tanto para Angular como para el servidor backend.
+   Esto instalará:
+   - Angular 20
+   - Express 4.18.2
+   - bcrypt (para hash de contraseñas)
+   - nodemailer (para envío de emails)
+   - node-cron (para tareas programadas)
+   - cors, body-parser, etc.
+
+## ⚙️ Configuración de Email
+
+**IMPORTANTE**: Para que funcionen los recordatorios por email:
+
+1. Edita `email.service.js` (líneas 18-19)
+2. Configura tu Gmail:
+   ```javascript
+   user: 'tu_email@gmail.com',
+   pass: 'tu_contraseña_de_aplicación'
+   ```
+
+3. Para obtener contraseña de aplicación de Gmail:
+   - Ve a https://myaccount.google.com/security
+   - Activa verificación en 2 pasos
+   - Busca "Contraseñas de aplicaciones"
+   - Genera una para "Correo"
 
 ## ▶️ Cómo Ejecutar el Proyecto
 
@@ -71,24 +91,13 @@ practica_scrum/
 └── tsconfig.json           # Configuración de TypeScript
 ```
 
-## 🔑 Usuarios Predeterminados
+## 🔐 Requisitos de Contraseña
 
-El sistema incluye usuarios predeterminados para pruebas:
-
-- **Usuario 1:**
-  - ID: `201912345`
-  - Contraseña: `admin123`
-  - Correo: `admin@buap.mx`
-
-- **Usuario 2:**
-  - ID: `202268439`
-  - Contraseña: `samd`
-  - Correo: `jovany.solis@alumno.buap.mx`
-
-- **Usuario 3:**
-  - ID: `202300001`
-  - Contraseña: `sersh123`
-  - Correo: `sershdiaz@hotmail.com`
+Al registrarse o cambiar contraseña:
+- Entre 8 y 15 caracteres
+- Al menos una letra (mayúscula o minúscula)
+- Al menos un número
+- Al menos un símbolo especial (cualquiera: @#$%^&*()!_.-+, etc.)
 
 ## 🛠️ Scripts Disponibles
 
@@ -99,13 +108,15 @@ El sistema incluye usuarios predeterminados para pruebas:
 
 ## 📝 Endpoints del API
 
-El servidor backend expone los siguientes endpoints:
+### Autenticación
+- `POST /api/login` - Autenticación de usuarios (verifica hash con bcrypt)
+- `POST /api/register` - Registro de nuevos usuarios (hashea contraseña)
+- `POST /api/forgot-password` - Solicitar código de recuperación por email
+- `POST /api/verify-recovery-code` - Verificar código de 6 dígitos
+- `POST /api/reset-password` - Cambiar contraseña con código válido
 
 ### Usuarios
-- `POST /api/login` - Autenticación de usuarios
-- `POST /api/register` - Registro de nuevos usuarios
 - `GET /api/users` - Obtener lista de usuarios
-- `PUT /api/users/:id` - Actualizar información de usuario
 
 ### Tareas
 - `GET /api/tasks` - Obtener todas las tareas
@@ -115,49 +126,78 @@ El servidor backend expone los siguientes endpoints:
 - `DELETE /api/tasks/:id` - Eliminar tarea
 
 ### Recordatorios
-- `POST /api/test-reminders` - Probar envío manual de recordatorios por email
+- `POST /api/test-reminders` - Probar envío manual de recordatorios
 
 ## 🔔 Sistema de Recordatorios
 
-El sistema incluye recordatorios automáticos por email:
+- **Automático**: Verificación diaria a las 10:00 AM
+- **Envío**: Emails 24 horas antes de cada fecha de entrega
+- **Manual**: Botón "Probar Recordatorios" en pantalla de tareas
+- **Configuración**: Requiere Gmail configurado en `email.service.js`
 
-- **Automático**: Envía emails diariamente a las 9:00 AM para tareas que vencen al día siguiente
-- **Manual**: Botón "Probar Recordatorios" en la pantalla de tareas
-- **Configuración**: Ver archivo `HOTMAIL_CONFIG.md` para configuración de email
+## 🔒 Seguridad Implementada
+
+1. **Hash de Contraseñas**: bcrypt con 10 salt rounds
+2. **Validación de Contraseñas**: Requisitos estrictos (letra, número, símbolo)
+3. **Recuperación Segura**: Código de 6 dígitos con expiración de 15 minutos
+4. **Sesión**: localStorage para mantener sesión activa
 
 ## 🖥️ Pantallas de la Aplicación
 
-1. **Login/Registro**: Autenticación de usuarios
-2. **Pantalla de Inicio**: Menú principal con acceso a todas las funcionalidades
-3. **Pantalla de Tareas**: Gestión de tareas y recordatorios
+1. **Login**: Inicio de sesión con matrícula o correo
+2. **Registro**: Creación de cuenta con validaciones
+3. **Recuperar Contraseña**: 
+   - Solicitar código por email
+   - Verificar código de 6 dígitos
+   - Establecer nueva contraseña
+4. **Pantalla de Inicio**: Menú principal con información del usuario
+5. **Mis Tareas**: Gestión completa de tareas asignadas
 
 ## ⚙️ Configuración Adicional
 
-Para configurar el servicio de email, consulta:
-- `CONFIGURACION_EMAIL.md` - Guía general de configuración de email
-- `HOTMAIL_CONFIG.md` - Instrucciones específicas para Hotmail/Outlook
-- `DELETE /api/users/:id` - Eliminar usuario
+**Email Service** (`email.service.js`):
+- Configurar credenciales de Gmail (líneas 18-19)
+- Horario de verificación automática (línea 133): `'0 10 * * *'` = 10:00 AM
+- Códigos de recuperación expiran en 15 minutos
+
+**Tareas** (`tasks.json`):
+- Formato de fecha: ISO 8601 (YYYY-MM-DDTHH:mm:ss)
+- Usuarios asignados: array de matrículas
 
 ## 🐛 Solución de Problemas
 
 ### Error: Puerto en uso
 
-Si recibes un error indicando que el puerto está en uso:
-
-- Para el frontend (puerto 4200): Cierra otras instancias de Angular o cambia el puerto en `angular.json`
-- Para el backend (puerto 3000): Cierra otras aplicaciones usando el puerto 3000 o modifica `PORT` en `server.js`
+- **Frontend (4200)**: Cierra otras instancias o cambia en `angular.json`
+- **Backend (3000)**: Cierra aplicaciones o modifica `PORT` en `server.js`
 
 ### Error: Módulos no encontrados
-
-Ejecuta nuevamente:
 
 ```bash
 npm install
 ```
 
-### Error de CORS
+### Emails no se envían
 
-El servidor ya está configurado con CORS habilitado. Si aún tienes problemas, verifica que el servidor backend esté ejecutándose correctamente.
+1. Verifica credenciales de Gmail en `email.service.js`
+2. Asegúrate de usar contraseña de aplicación (no tu contraseña normal)
+3. Revisa que la verificación en 2 pasos esté activa
+4. Consulta la consola del servidor para errores específicos
+
+### Error al iniciar sesión después de actualizar
+
+Las contraseñas ahora están hasheadas. Si actualizaste desde versión anterior, las contraseñas en texto plano no funcionarán. Opciones:
+1. Crear nuevo usuario con el sistema de registro
+2. Usar usuarios predeterminados (contraseñas ya hasheadas)
+
+## 🎨 Características Adicionales
+
+- ✅ Interfaz responsive con gradientes azules institucionales
+- ✅ Botones reactivos con efectos hover y active
+- ✅ Validación de formularios en frontend y backend
+- ✅ Mensajes de error/éxito amigables
+- ✅ Información académica personalizada por usuario
+- ✅ Cierre de sesión seguro
 
 ## 📞 Soporte
 

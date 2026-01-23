@@ -1,7 +1,7 @@
 [
   {
     "id_usuario": "201912345",
-    "password": "admin123",
+    "password": "$2b$10$9Go2bkjasWPlDaT.e4Xi.OTlU4DIGRsvSLD/iuMdjrPmnDRokh51W",
     "nombre_completo": "Administrador Sistema",
     "correo": "admin@buap.mx",
     "telefono": "2221234567",
@@ -10,7 +10,7 @@
   },
   {
     "id_usuario": "202268439",
-    "password": "samd",
+    "password": "$2b$10$ffy2J6op1h8LjtKgQnjDtemiGQ9.esh/L7OY9Isf7EfILTiXD29h2",
     "nombre_completo": "Jovany Solis Ortiz",
     "correo": "jovany.solis@alumno.buap.mx",
     "telefono": "2227654321",
@@ -19,11 +19,20 @@
   },
   {
     "id_usuario": "202300001",
-    "password": "sersh123",
+    "password": "$2b$10$gEtecNnWhXHqps30GnuyeuuxEoN3n27LeoBlvG6IxJk3vUJiJYMQ.",
     "nombre_completo": "Sersh Diaz",
     "correo": "sershdiaz@hotmail.com",
     "telefono": "2221111111",
     "sexo": "Masculino",
     "carrera": "Ingeniería en TI"
+  },
+  {
+    "id_usuario": "200000000",
+    "password": "$2b$10$hU6HssbeCKnY/.W1ycuUsuSnHReJgRS1x3hr8QR6vDXBK14V3TrZa",
+    "nombre_completo": "Jose Perez",
+    "correo": "hola@correo.com",
+    "telefono": "2312132131",
+    "sexo": "Otro",
+    "carrera": "Comercio"
   }
 ]
