@@ -18,10 +18,6 @@
             "tsConfig": "tsconfig.json",
             "styles": ["src/styles.css"],
             "assets": [
-              "src/pantalla_inicio.html",
-              "src/tareas.html",
-              "src/diseños.css",
-              "src/pruebas.js",
               {
                 "glob": "**/*",
                 "input": "src/screens",
