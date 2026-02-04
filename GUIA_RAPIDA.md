@@ -28,7 +28,7 @@ Una vez iniciado el servidor, abre tu navegador en:
 http://localhost:3000/src/index-angular.html
 ```
 
-## 👥 Usuarios de Prueba
+##  Usuarios de Prueba
 
 ### Administrador
 - **ID:** `201912345`

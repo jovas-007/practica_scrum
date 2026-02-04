@@ -129,7 +129,7 @@ El servicio `auth.service.ts` ahora incluye:
 - ✅ Estadísticas del sistema
 - ✅ Panel de opciones administrativas
 - 📝 Crear tareas (estructura preparada)
-- 👥 Gestionar estudiantes (estructura preparada)
+-  Gestionar estudiantes (estructura preparada)
 - 📊 Reportes (estructura preparada)
 - ⚙️ Configuración (estructura preparada)
 
@@ -145,7 +145,7 @@ El servicio `auth.service.ts` ahora incluye:
    - Dashboard Estudiante: `http://localhost:3000/src/screens/student-dashboard.html`
    - Dashboard Admin: `http://localhost:3000/src/screens/admin-dashboard.html`
 
-### 👥 Usuarios de Prueba
+###  Usuarios de Prueba
 
 **Administrador:**
 - ID: `201912345`
