@@ -302,6 +302,70 @@
                     <input type="password" id="loginPassword" placeholder="********" required>
                 </div>
                 <button type="submit" class="btn btn-primary" id="btnLogin">Iniciar Sesión</button>
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="showForgotPassword()" style="color: #002855; text-decoration: none; font-size: 14px;">¿Olvidaste tu contraseña?</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Forgot Password - Step 1: Email -->
+        <div id="tab-forgot" class="tab-content" style="display: none;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h3 style="color: #002855; margin-bottom: 10px;">Recuperar Contraseña</h3>
+                <p style="color: #64748b; font-size: 14px;">Ingresa tu correo electrónico y te enviaremos un código de verificación.</p>
+            </div>
+            <form onsubmit="handleForgotPassword(event)" id="forgotForm">
+                <div class="form-group">
+                    <label>Correo Electrónico <span class="required">*</span></label>
+                    <input type="email" id="forgotEmail" placeholder="tu.correo@ejemplo.com" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnForgot">Enviar Instrucciones</button>
+                <button type="button" class="btn btn-secondary" onclick="showTab('login')" style="margin-top: 10px;">Volver al Login</button>
+            </form>
+        </div>
+
+        <!-- Forgot Password - Step 2: Code -->
+        <div id="tab-code" class="tab-content" style="display: none;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h3 style="color: #002855; margin-bottom: 10px;">Verificar Código</h3>
+                <p style="color: #64748b; font-size: 14px;">Ingresa el código de 6 dígitos que enviamos a tu correo.</p>
+                <p id="emailSentTo" style="color: #059669; font-size: 13px; margin-top: 5px;"></p>
+            </div>
+            <form onsubmit="handleVerifyCode(event)" id="codeForm">
+                <div class="form-group">
+                    <label>Código de Verificación <span class="required">*</span></label>
+                    <input type="text" id="recoveryCode" placeholder="000000" maxlength="6" 
+                           pattern="[0-9]{6}" style="text-align: center; font-size: 24px; letter-spacing: 8px;"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnVerify">Verificar Código</button>
+                <button type="button" class="btn btn-secondary" onclick="showForgotPassword()" style="margin-top: 10px;">Reenviar Código</button>
+            </form>
+        </div>
+
+        <!-- Forgot Password - Step 3: New Password -->
+        <div id="tab-newpass" class="tab-content" style="display: none;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h3 style="color: #002855; margin-bottom: 10px;">Nueva Contraseña</h3>
+                <p style="color: #64748b; font-size: 14px;">Crea tu nueva contraseña.</p>
+            </div>
+            <form onsubmit="handleResetPassword(event)" id="newPassForm">
+                <div class="form-group">
+                    <label>Nueva Contraseña <span class="required">*</span></label>
+                    <input type="password" id="newPassword" placeholder="Mínimo 6 caracteres" 
+                           oninput="validateNewPassword()" required>
+                    <div class="password-strength">
+                        <div id="newStrengthBar" class="bar"></div>
+                    </div>
+                    <span id="newStrengthText" class="hint">Mínimo 6 caracteres</span>
+                </div>
+                <div class="form-group">
+                    <label>Confirmar Nueva Contraseña <span class="required">*</span></label>
+                    <input type="password" id="confirmNewPassword" placeholder="Repite la contraseña" 
+                           oninput="validateNewPasswordMatch()" required>
+                    <span id="newPasswordMatch" class="password-match"></span>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnReset">Cambiar Contraseña</button>
             </form>
         </div>
 
@@ -407,6 +471,11 @@
         const API_URL = 'http://127.0.0.1:8000/api';
 
         function showTab(tab) {
+            // Ocultar todos los tabs de recuperación
+            document.getElementById('tab-forgot').style.display = 'none';
+            document.getElementById('tab-code').style.display = 'none';
+            document.getElementById('tab-newpass').style.display = 'none';
+            
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
@@ -836,6 +905,211 @@
                 }
             }
         });
+
+        // =============== RECUPERACIÓN DE CONTRASEÑA ===============
+        let recoveryEmail = '';
+
+        function showForgotPassword() {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-forgot').style.display = 'block';
+            document.getElementById('tab-forgot').classList.add('active');
+            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+        }
+
+        function showCodeScreen() {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-code').style.display = 'block';
+            document.getElementById('tab-code').classList.add('active');
+            document.getElementById('emailSentTo').textContent = 'Enviado a: ' + recoveryEmail;
+        }
+
+        function showNewPasswordScreen() {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-newpass').style.display = 'block';
+            document.getElementById('tab-newpass').classList.add('active');
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value.trim();
+            const btn = document.getElementById('btnForgot');
+            
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+            
+            try {
+                const response = await fetch(`${API_URL}/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correo: email })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    recoveryEmail = email;
+                    showAlert('Codigo enviado a tu correo', 'success');
+                    showCodeScreen();
+                } else {
+                    showAlert(data.message || 'Correo no encontrado', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error de conexion con el servidor', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Enviar Instrucciones';
+            }
+        }
+
+        async function handleVerifyCode(e) {
+            e.preventDefault();
+            const code = document.getElementById('recoveryCode').value.trim();
+            const btn = document.getElementById('btnVerify');
+            
+            if (code.length !== 6) {
+                showAlert('El codigo debe tener 6 digitos', 'error');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+            
+            try {
+                const response = await fetch(`${API_URL}/verify-recovery-code`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        correo: recoveryEmail,
+                        code: code 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Codigo verificado correctamente', 'success');
+                    showNewPasswordScreen();
+                } else {
+                    showAlert(data.message || 'Codigo incorrecto o expirado', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error de conexion con el servidor', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Verificar Codigo';
+            }
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            const code = document.getElementById('recoveryCode').value.trim();
+            const btn = document.getElementById('btnReset');
+            
+            if (newPassword.length < 6) {
+                showAlert('La contrasena debe tener minimo 6 caracteres', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showAlert('Las contrasenas no coinciden', 'error');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Cambiando...';
+            
+            try {
+                const response = await fetch(`${API_URL}/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        correo: recoveryEmail,
+                        code: code,
+                        new_password: newPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Contrasena cambiada exitosamente', 'success');
+                    setTimeout(() => {
+                        showTab('login');
+                        document.getElementById('forgotForm').reset();
+                        document.getElementById('codeForm').reset();
+                        document.getElementById('newPassForm').reset();
+                    }, 1500);
+                } else {
+                    showAlert(data.message || 'Error al cambiar contrasena', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error de conexion con el servidor', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Cambiar Contrasena';
+            }
+        }
+
+        function validateNewPassword() {
+            const password = document.getElementById('newPassword').value;
+            const strengthBar = document.getElementById('newStrengthBar');
+            const strengthText = document.getElementById('newStrengthText');
+            
+            strengthBar.className = 'bar';
+            
+            if (password.length === 0) {
+                strengthText.textContent = 'Minimo 6 caracteres';
+                return;
+            }
+            
+            let strength = 0;
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            if (strength <= 1) {
+                strengthBar.classList.add('weak');
+                strengthText.textContent = 'Debil';
+            } else if (strength <= 2) {
+                strengthBar.classList.add('medium');
+                strengthText.textContent = 'Media';
+            } else {
+                strengthBar.classList.add('strong');
+                strengthText.textContent = 'Fuerte';
+            }
+            
+            validateNewPasswordMatch();
+        }
+
+        function validateNewPasswordMatch() {
+            const password = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmNewPassword').value;
+            const matchEl = document.getElementById('newPasswordMatch');
+            
+            if (confirm.length === 0) {
+                matchEl.textContent = '';
+                matchEl.className = 'password-match';
+                return;
+            }
+            
+            if (password === confirm) {
+                matchEl.textContent = 'Las contrasenas coinciden';
+                matchEl.className = 'password-match match';
+            } else {
+                matchEl.textContent = 'Las contrasenas no coinciden';
+                matchEl.className = 'password-match no-match';
+            }
+        }
     </script>
 </body>
 </html>
