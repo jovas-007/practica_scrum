@@ -1,0 +1,15 @@
+{
+  "name": "classroom-lite-frontend",
+  "version": "1.0.0",
+  "description": "Frontend del Sistema de Gestión de Tareas",
+  "scripts": {
+    "start": "serve -s . -l $PORT",
+    "dev": "serve -s . -l 4200"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

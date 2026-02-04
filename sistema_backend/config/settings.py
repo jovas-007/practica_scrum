@@ -1,8 +1,9 @@
 """
 Django settings for Sistema de Gestión de Tareas
-Configurado para MySQL en XAMPP (puerto 3307)
+Configurado para TiDB Cloud (producción) y MySQL local (desarrollo)
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -12,9 +13,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-sistema-tareas-buap-2026-dev-key-change-in-production'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', '.onrender.com', '*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -64,21 +65,49 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database - MySQL en XAMPP puerto 3307
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'sistema_tareas',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3307',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+# Database - TiDB Cloud (Producción)
+import os
+
+# Detectar si estamos en producción o desarrollo
+IS_PRODUCTION = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER') or os.environ.get('TIDB_HOST')
+
+if IS_PRODUCTION:
+    # TiDB Cloud - Producción
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django_tidb',
+            'NAME': os.environ.get('TIDB_DATABASE', 'sistema_tareas'),
+            'USER': os.environ.get('TIDB_USER', '37QFcSa1HSQDHNE.root'),
+            'PASSWORD': os.environ.get('TIDB_PASSWORD', 'bOvay0l4SI0w3lZA'),
+            'HOST': os.environ.get('TIDB_HOST', 'gateway01.us-east-1.prod.aws.tidbcloud.com'),
+            'PORT': int(os.environ.get('TIDB_PORT', 4000)),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'ssl_mode': 'VERIFY_IDENTITY',
+                'ssl': {
+                    'ca': os.environ.get('TIDB_SSL_CA', '/etc/ssl/certs/ca-certificates.crt'),
+                },
+            },
+        }
     }
-}
+else:
+    # MySQL Local - Desarrollo (XAMPP)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'sistema_tareas',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': '3307',
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+            },
+        }
+    }
+    # Usar PyMySQL como conector local
+    import pymysql
+    pymysql.install_as_MySQLdb()
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
