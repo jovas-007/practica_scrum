@@ -52,7 +52,12 @@ export class AuthService {
         this.http.post<RegisterResponse>(`${this.API_URL}/register`, userData)
       );
       return response;
-    } catch (error) {
+    } catch (error: any) {
+      // Si el servidor respondió con un error (400, 401, etc.), extraer el mensaje
+      if (error.error && error.error.message) {
+        return { success: false, message: error.error.message };
+      }
+      // Si es un error de conexión real
       return { success: false, message: 'Error de conexión con el servidor' };
     }
   }
