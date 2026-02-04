@@ -105,9 +105,7 @@ else:
             },
         }
     }
-    # Usar PyMySQL como conector local
-    import pymysql
-    pymysql.install_as_MySQLdb()
+    # PyMySQL se importa en config/__init__.py
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'

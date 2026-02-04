@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura de Software - Sistema de Gestión de Tareas</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+            background: white;
+            padding: 40px;
+            max-width: 210mm;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #002855;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #002855;
+            font-size: 24pt;
+            margin-bottom: 5px;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 14pt;
+        }
+        
+        .header .date {
+            color: #888;
+            font-size: 10pt;
+            margin-top: 10px;
+        }
+        
+        h2 {
+            color: #002855;
+            font-size: 14pt;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #e0e0e0;
+            page-break-after: avoid;
+        }
+        
+        h3 {
+            color: #004080;
+            font-size: 12pt;
+            margin-top: 18px;
+            margin-bottom: 8px;
+            page-break-after: avoid;
+        }
+        
+        h4 {
+            color: #333;
+            font-size: 11pt;
+            margin-top: 12px;
+            margin-bottom: 6px;
+        }
+        
+        p {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 10pt;
+            page-break-inside: avoid;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #002855;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .diagram {
+            background: #f5f7fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+            white-space: pre;
+            overflow-x: auto;
+            page-break-inside: avoid;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+            border-left: 4px solid #002855;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 15px 0;
+        }
+        
+        .column {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+        
+        li {
+            margin-bottom: 5px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #002855;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9pt;
+            margin-right: 5px;
+        }
+        
+        .badge-green {
+            background: #059669;
+        }
+        
+        .badge-blue {
+            background: #2563eb;
+        }
+        
+        .badge-orange {
+            background: #d97706;
+        }
+        
+        .flow-item {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .flow-number {
+            background: #002855;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+        
+        .section {
+            page-break-inside: avoid;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+        
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #002855;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12pt;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .print-btn:hover {
+            background: #004080;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn no-print" onclick="window.print()">Guardar como PDF</button>
+
+    <div class="header">
+        <h1>ARQUITECTURA DE SOFTWARE</h1>
+        <div class="subtitle">Sistema de Gestión de Tareas Escolares</div>
+        <div class="date">BUAP - Febrero 2026</div>
+    </div>
+
+    <!-- SECCIÓN 1: RESUMEN EJECUTIVO -->
+    <section class="section">
+        <h2>1. Resumen Ejecutivo</h2>
+        <p>
+            El Sistema de Gestión de Tareas Escolares es una aplicación web diseñada para facilitar 
+            la asignación, entrega y calificación de tareas entre docentes y estudiantes. La arquitectura 
+            sigue un patrón cliente-servidor con separación clara entre frontend y backend.
+        </p>
+        
+        <div class="highlight-box">
+            <strong>Características Principales:</strong>
+            <ul>
+                <li>Autenticación por roles (Docente / Estudiante)</li>
+                <li>Gestión completa de tareas (CRUD)</li>
+                <li>Sistema de entregas con soporte de archivos</li>
+                <li>Calificaciones y reportes estadísticos</li>
+                <li>Recuperación de contraseña por email</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SECCIÓN 2: DIAGRAMA GENERAL -->
+    <section class="section">
+        <h2>2. Arquitectura General</h2>
+        
+        <div class="diagram">
+┌─────────────────────────────────────────────────────────────────┐
+│                     USUARIOS (Navegador Web)                    │
+│                  Docentes        Estudiantes                    │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   CAPA DE PRESENTACIÓN                          │
+│              HTML5 / CSS3 / JavaScript (ES6+)                   │
+│         Servidor: http-server - Puerto 4200                     │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ REST API (JSON)
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    CAPA DE APLICACIÓN                           │
+│              Django 4.2 + Django REST Framework                 │
+│               Servidor: Django - Puerto 8000                    │
+│  ┌──────────────────┐    ┌──────────────────────────┐          │
+│  │   App: users     │    │       App: tareas        │          │
+│  │  (Autenticación) │    │ (Tareas y Calificaciones)│          │
+│  └──────────────────┘    └──────────────────────────┘          │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ ORM Django
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      CAPA DE DATOS                              │
+│  ┌─────────────────────┐    ┌─────────────────────────────┐    │
+│  │  MySQL (Desarrollo) │    │   TiDB Cloud (Producción)   │    │
+│  │    Puerto: 3307     │    │       Puerto: 4000 + SSL    │    │
+│  └─────────────────────┘    └─────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+        </div>
+    </section>
+
+    <!-- SECCIÓN 3: STACK TECNOLÓGICO -->
+    <section class="section">
+        <h2>3. Stack Tecnológico</h2>
+        
+        <h3>3.1 Frontend</h3>
+        <table>
+            <tr>
+                <th>Tecnología</th>
+                <th>Propósito</th>
+            </tr>
+            <tr>
+                <td>HTML5</td>
+                <td>Estructura de páginas y formularios</td>
+            </tr>
+            <tr>
+                <td>CSS3</td>
+                <td>Estilos, diseño responsivo y animaciones</td>
+            </tr>
+            <tr>
+                <td>JavaScript ES6+</td>
+                <td>Lógica de cliente, validaciones y Fetch API</td>
+            </tr>
+            <tr>
+                <td>http-server (npm)</td>
+                <td>Servidor de archivos estáticos</td>
+            </tr>
+        </table>
+        
+        <h3>3.2 Backend</h3>
+        <table>
+            <tr>
+                <th>Tecnología</th>
+                <th>Versión</th>
+                <th>Propósito</th>
+            </tr>
+            <tr>
+                <td>Python</td>
+                <td>3.11+</td>
+                <td>Lenguaje principal del servidor</td>
+            </tr>
+            <tr>
+                <td>Django</td>
+                <td>4.2.22</td>
+                <td>Framework web y ORM</td>
+            </tr>
+            <tr>
+                <td>Django REST Framework</td>
+                <td>3.16.1</td>
+                <td>Construcción de API REST</td>
+            </tr>
+            <tr>
+                <td>django-cors-headers</td>
+                <td>4.7.0</td>
+                <td>Manejo de peticiones cross-origin</td>
+            </tr>
+            <tr>
+                <td>bcrypt</td>
+                <td>4.2.0</td>
+                <td>Hashing seguro de contraseñas</td>
+            </tr>
+        </table>
+        
+        <h3>3.3 Base de Datos</h3>
+        <table>
+            <tr>
+                <th>Entorno</th>
+                <th>Tecnología</th>
+                <th>Configuración</th>
+            </tr>
+            <tr>
+                <td>Desarrollo</td>
+                <td>MySQL (XAMPP)</td>
+                <td>localhost:3307</td>
+            </tr>
+            <tr>
+                <td>Producción</td>
+                <td>TiDB Cloud (AWS)</td>
+                <td>us-east-1, Puerto 4000, SSL requerido</td>
+            </tr>
+        </table>
+    </section>
+
+    <div class="page-break"></div>
+
+    <!-- SECCIÓN 4: MODELO DE DATOS -->
+    <section class="section">
+        <h2>4. Modelo de Datos</h2>
+        
+        <div class="diagram">
+    ┌─────────────────┐         ┌─────────────────────┐
+    │     USERS       │         │   RECOVERY_CODES    │
+    ├─────────────────┤         ├─────────────────────┤
+    │ PK id_usuario   │────────<│ FK user_id          │
+    │    correo       │         │    code (6 dígitos) │
+    │    password     │         │    expires_at       │
+    │    nombre       │         │    used             │
+    │    rol (enum)   │         └─────────────────────┘
+    │    carrera      │
+    └────────┬────────┘
+             │
+             │ (1:N) Docente crea tareas
+             ▼
+    ┌─────────────────┐         ┌─────────────────────┐
+    │     TAREAS      │         │      ENTREGAS       │
+    ├─────────────────┤         ├─────────────────────┤
+    │ PK id           │────────<│ FK task_id          │
+    │    titulo       │         │ FK student_id       │>───┐
+    │    descripcion  │         │    estado           │    │
+    │    fecha_entrega│         │    calificacion     │    │
+    │    estado       │         │    comentario       │    │
+    │    puntos_max   │         └──────────┬──────────┘    │
+    │ FK docente_id   │                    │               │
+    └─────────────────┘                    │ (1:N)         │
+                                           ▼               │
+                               ┌─────────────────────┐     │
+                               │  ARCHIVOS_ENTREGA   │     │
+                               ├─────────────────────┤     │
+                               │ FK submission_id    │     │
+                               │    archivo (path)   │     │
+                               │    es_tardia        │     │
+                               └─────────────────────┘     │
+                                                           │
+                                    Estudiante entrega ────┘
+        </div>
+        
+        <h3>4.1 Entidades Principales</h3>
+        
+        <table>
+            <tr>
+                <th>Entidad</th>
+                <th>Descripción</th>
+                <th>Campos Clave</th>
+            </tr>
+            <tr>
+                <td><strong>Users</strong></td>
+                <td>Usuarios del sistema (docentes y estudiantes)</td>
+                <td>id_usuario (matrícula), rol, correo, password</td>
+            </tr>
+            <tr>
+                <td><strong>Tareas</strong></td>
+                <td>Tareas creadas por docentes</td>
+                <td>título, fecha_entrega, estado, puntos_maximos</td>
+            </tr>
+            <tr>
+                <td><strong>Entregas</strong></td>
+                <td>Relación estudiante-tarea con calificación</td>
+                <td>estado, calificación, comentario_docente</td>
+            </tr>
+            <tr>
+                <td><strong>Archivos_Entrega</strong></td>
+                <td>Archivos subidos por estudiantes</td>
+                <td>archivo, nombre_original, es_entrega_tardia</td>
+            </tr>
+            <tr>
+                <td><strong>Recovery_Codes</strong></td>
+                <td>Códigos para recuperar contraseña</td>
+                <td>code (6 dígitos), expires_at, used</td>
+            </tr>
+        </table>
+    </section>
+
+    <!-- SECCIÓN 5: API REST -->
+    <section class="section">
+        <h2>5. Endpoints API REST</h2>
+        
+        <h3>5.1 Módulo de Autenticación</h3>
+        <table>
+            <tr>
+                <th>Método</th>
+                <th>Endpoint</th>
+                <th>Descripción</th>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/login</td>
+                <td>Autenticación de usuario</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/register</td>
+                <td>Registro de nuevo usuario</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/forgot-password</td>
+                <td>Solicitar código de recuperación</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/verify-recovery-code</td>
+                <td>Verificar código recibido</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/reset-password</td>
+                <td>Establecer nueva contraseña</td>
+            </tr>
+        </table>
+        
+        <h3>5.2 Módulo Docente (Tareas)</h3>
+        <table>
+            <tr>
+                <th>Método</th>
+                <th>Endpoint</th>
+                <th>Descripción</th>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">GET</span></td>
+                <td>/api/tasks/</td>
+                <td>Listar tareas del docente</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/tasks/</td>
+                <td>Crear nueva tarea (borrador)</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-orange">PUT</span></td>
+                <td>/api/tasks/{id}/</td>
+                <td>Editar tarea existente</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/tasks/{id}/activate/</td>
+                <td>Activar tarea (asignar a estudiantes)</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/tasks/{id}/close/</td>
+                <td>Cerrar tarea</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/submissions/{id}/grade/</td>
+                <td>Calificar entrega de estudiante</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">GET</span></td>
+                <td>/api/reports/grades/</td>
+                <td>Reporte de calificaciones</td>
+            </tr>
+        </table>
+        
+        <h3>5.3 Módulo Estudiante</h3>
+        <table>
+            <tr>
+                <th>Método</th>
+                <th>Endpoint</th>
+                <th>Descripción</th>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">GET</span></td>
+                <td>/api/my-tasks/</td>
+                <td>Listar tareas asignadas</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">GET</span></td>
+                <td>/api/my-tasks/{id}/</td>
+                <td>Detalle de una tarea</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-green">POST</span></td>
+                <td>/api/my-tasks/{id}/submit/</td>
+                <td>Subir archivos de entrega</td>
+            </tr>
+            <tr>
+                <td><span class="badge badge-blue">GET</span></td>
+                <td>/api/my-submissions/</td>
+                <td>Historial de calificaciones</td>
+            </tr>
+        </table>
+    </section>
+
+    <div class="page-break"></div>
+
+    <!-- SECCIÓN 6: SEGURIDAD -->
+    <section class="section">
+        <h2>6. Seguridad</h2>
+        
+        <h3>6.1 Autenticación</h3>
+        <div class="highlight-box">
+            <ul>
+                <li><strong>Identificación:</strong> Por matrícula (id_usuario) o correo electrónico</li>
+                <li><strong>Hashing:</strong> PBKDF2 (Django) y bcrypt (compatibilidad Node.js)</li>
+                <li><strong>Header de sesión:</strong> X-User-Id en cada petición</li>
+            </ul>
+        </div>
+        
+        <h3>6.2 Validación de Contraseñas</h3>
+        <table>
+            <tr>
+                <th>Requisito</th>
+                <th>Validación</th>
+            </tr>
+            <tr>
+                <td>Longitud</td>
+                <td>Mínimo 8, máximo 15 caracteres</td>
+            </tr>
+            <tr>
+                <td>Letras</td>
+                <td>Al menos una letra (a-z, A-Z)</td>
+            </tr>
+            <tr>
+                <td>Números</td>
+                <td>Al menos un dígito (0-9)</td>
+            </tr>
+            <tr>
+                <td>Símbolos</td>
+                <td>Al menos un carácter especial (!@#$%...)</td>
+            </tr>
+        </table>
+        
+        <h3>6.3 Recuperación de Contraseña</h3>
+        <div class="flow-item"><div class="flow-number">1</div> Usuario solicita recuperación con su correo</div>
+        <div class="flow-item"><div class="flow-number">2</div> Sistema genera código de 6 dígitos (expira en 15 min)</div>
+        <div class="flow-item"><div class="flow-number">3</div> Código enviado por email (SMTP Gmail)</div>
+        <div class="flow-item"><div class="flow-number">4</div> Usuario verifica código</div>
+        <div class="flow-item"><div class="flow-number">5</div> Usuario establece nueva contraseña</div>
+        
+        <h3>6.4 Protección de Archivos</h3>
+        <table>
+            <tr>
+                <th>Control</th>
+                <th>Valor</th>
+            </tr>
+            <tr>
+                <td>Tamaño máximo</td>
+                <td>20 MB por archivo</td>
+            </tr>
+            <tr>
+                <td>Extensiones permitidas</td>
+                <td>pdf, doc, docx, xls, xlsx, ppt, pptx, jpg, png, zip, txt, py, js, java, etc.</td>
+            </tr>
+            <tr>
+                <td>Almacenamiento</td>
+                <td>media/entregas/{task_id}/{student_id}/</td>
+            </tr>
+        </table>
+    </section>
+
+    <!-- SECCIÓN 7: FLUJOS DE NEGOCIO -->
+    <section class="section">
+        <h2>7. Flujos de Negocio Principales</h2>
+        
+        <h3>7.1 Ciclo de Vida de una Tarea</h3>
+        <div class="diagram">
+    ┌──────────┐     ┌──────────┐     ┌──────────┐
+    │ BORRADOR │────>│  ACTIVA  │────>│ CERRADA  │
+    └──────────┘     └──────────┘     └──────────┘
+         │               │                 │
+         │               │                 │
+    Docente crea    Signal crea       No acepta
+    y edita         Submission para   más entregas
+                    cada estudiante
+        </div>
+        
+        <h3>7.2 Estados de Entrega del Estudiante</h3>
+        <div class="diagram">
+    ┌───────────┐     ┌───────────┐     ┌────────────┐
+    │ PENDIENTE │────>│ ENTREGADO │────>│ CALIFICADO │
+    └───────────┘     └───────────┘     └────────────┘
+         │                 │                  │
+    Tarea asignada    Estudiante        Docente asigna
+    (automático)      sube archivos     nota 1-10
+        </div>
+        
+        <h3>7.3 Automatizaciones (Django Signals)</h3>
+        <div class="highlight-box">
+            <ul>
+                <li><strong>Al activar tarea:</strong> Se crea automáticamente una Submission para cada estudiante activo</li>
+                <li><strong>Al subir archivo:</strong> Se detecta si es entrega tardía comparando con fecha_entrega</li>
+                <li><strong>Al calificar:</strong> Se actualiza estado a "calificado" y se registra fecha</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SECCIÓN 8: ENTORNOS -->
+    <section class="section">
+        <h2>8. Configuración de Entornos</h2>
+        
+        <div class="two-columns">
+            <div class="column">
+                <h4>Desarrollo (Local)</h4>
+                <ul>
+                    <li><strong>Frontend:</strong> http://localhost:4200</li>
+                    <li><strong>Backend:</strong> http://127.0.0.1:8000</li>
+                    <li><strong>Base de datos:</strong> MySQL (XAMPP) puerto 3307</li>
+                    <li><strong>DEBUG:</strong> True</li>
+                </ul>
+            </div>
+            <div class="column">
+                <h4>Producción (Cloud)</h4>
+                <ul>
+                    <li><strong>Frontend:</strong> Railway/Vercel (HTTPS)</li>
+                    <li><strong>Backend:</strong> Railway (Django)</li>
+                    <li><strong>Base de datos:</strong> TiDB Cloud (SSL)</li>
+                    <li><strong>DEBUG:</strong> False</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h3>8.1 Variables de Entorno (Producción)</h3>
+        <table>
+            <tr>
+                <th>Variable</th>
+                <th>Descripción</th>
+            </tr>
+            <tr>
+                <td>TIDB_HOST</td>
+                <td>Host de TiDB Cloud (gateway01.us-east-1...)</td>
+            </tr>
+            <tr>
+                <td>TIDB_PORT</td>
+                <td>Puerto de conexión (4000)</td>
+            </tr>
+            <tr>
+                <td>TIDB_DATABASE</td>
+                <td>Nombre de la base de datos</td>
+            </tr>
+            <tr>
+                <td>TIDB_USER / TIDB_PASSWORD</td>
+                <td>Credenciales de acceso</td>
+            </tr>
+            <tr>
+                <td>DEBUG</td>
+                <td>False en producción</td>
+            </tr>
+        </table>
+    </section>
+
+    <div class="page-break"></div>
+
+    <!-- SECCIÓN 9: RESUMEN -->
+    <section class="section">
+        <h2>9. Resumen de Arquitectura</h2>
+        
+        <table>
+            <tr>
+                <th>Capa</th>
+                <th>Tecnología</th>
+                <th>Puerto</th>
+                <th>Responsabilidad</th>
+            </tr>
+            <tr>
+                <td><strong>Presentación</strong></td>
+                <td>HTML/CSS/JS</td>
+                <td>4200</td>
+                <td>Interfaz de usuario, validación cliente</td>
+            </tr>
+            <tr>
+                <td><strong>Aplicación</strong></td>
+                <td>Django + DRF</td>
+                <td>8000</td>
+                <td>Lógica de negocio, API REST</td>
+            </tr>
+            <tr>
+                <td><strong>Servicios</strong></td>
+                <td>SMTP Gmail</td>
+                <td>587</td>
+                <td>Notificaciones por email</td>
+            </tr>
+            <tr>
+                <td><strong>Datos</strong></td>
+                <td>MySQL / TiDB</td>
+                <td>3307 / 4000</td>
+                <td>Persistencia de información</td>
+            </tr>
+            <tr>
+                <td><strong>Archivos</strong></td>
+                <td>FileSystem</td>
+                <td>-</td>
+                <td>Almacenamiento de entregas</td>
+            </tr>
+        </table>
+        
+        <h3>9.1 Patrones Arquitectónicos</h3>
+        <div class="highlight-box">
+            <ul>
+                <li><strong>MVC/MVT:</strong> Separación Modelo-Vista-Template de Django</li>
+                <li><strong>REST:</strong> API stateless con recursos y métodos HTTP</li>
+                <li><strong>Repository:</strong> ORM Django como capa de abstracción de datos</li>
+                <li><strong>Observer:</strong> Django Signals para eventos automáticos</li>
+                <li><strong>Serializer:</strong> DRF para transformación y validación de datos</li>
+            </ul>
+        </div>
+        
+        <h3>9.2 Características de Calidad</h3>
+        <table>
+            <tr>
+                <th>Atributo</th>
+                <th>Implementación</th>
+            </tr>
+            <tr>
+                <td>Escalabilidad</td>
+                <td>Separación frontend/backend permite escalar independientemente</td>
+            </tr>
+            <tr>
+                <td>Mantenibilidad</td>
+                <td>Código modular en apps Django (users, tareas)</td>
+            </tr>
+            <tr>
+                <td>Portabilidad</td>
+                <td>Cambio de entorno mediante variables de ambiente</td>
+            </tr>
+            <tr>
+                <td>Seguridad</td>
+                <td>Hashing bcrypt/PBKDF2, validaciones, CORS configurado</td>
+            </tr>
+            <tr>
+                <td>Usabilidad</td>
+                <td>Interfaz responsiva, validaciones en tiempo real</td>
+            </tr>
+        </table>
+    </section>
+
+    <!-- FOOTER -->
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; text-align: center; color: #888; font-size: 10pt;">
+        <p>Sistema de Gestión de Tareas Escolares - Arquitectura de Software</p>
+        <p>BUAP - Práctica Scrum - 2026</p>
+    </div>
+
+</body>
+</html>
