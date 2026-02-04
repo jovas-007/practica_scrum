@@ -928,6 +928,12 @@
         let todasLasTareas = [];
         let submissionIdActual = null;
 
+        // ==================== UTILIDADES ====================
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/['"\\]/g, '\\$&').replace(/\n/g, ' ');
+        }
+
         // ==================== INICIALIZACIÓN ====================
         document.addEventListener('DOMContentLoaded', () => {
             // Verificar sesión
@@ -1454,7 +1460,7 @@
                                 <td>
                                     ${e.estado === 'entregado' || e.estado === 'calificado' ? `
                                         <button class="btn btn-success btn-sm" 
-                                                onclick="abrirCalificar(${e.id}, '${e.student.nombre_completo}', ${e.calificacion || ''}, '${e.comentario_docente || ''}')">
+                                                onclick="abrirCalificar(${e.id}, '${escapeHtml(e.student.nombre_completo)}', ${e.calificacion !== null ? e.calificacion : 'null'}, '${escapeHtml(e.comentario_docente || '')}')">
                                             📝 Calificar
                                         </button>
                                     ` : '<span style="color: #94a3b8;">Pendiente</span>'}
@@ -1469,7 +1475,7 @@
         function abrirCalificar(submissionId, nombre, calificacion, comentario) {
             submissionIdActual = submissionId;
             document.getElementById('infoEstudiante').textContent = `Estudiante: ${nombre}`;
-            document.getElementById('inputCalificacion').value = calificacion || '';
+            document.getElementById('inputCalificacion').value = calificacion !== null ? calificacion : '';
             document.getElementById('inputComentario').value = comentario || '';
             document.getElementById('modalCalificar').classList.add('active');
         }

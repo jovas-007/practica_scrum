@@ -1446,7 +1446,7 @@
                 document.getElementById('btnEnviar').disabled = true;
                 document.getElementById('btnEnviar').textContent = '⏳ Enviando...';
 
-                const response = await fetch(`${API_URL}/my-tasks/${tareaActual.id}/submit/?student_id=${currentUser.id_usuario}`, {
+                const response = await fetch(`${API_URL}/my-tasks/${tareaActual.task_id}/submit/?student_id=${currentUser.id_usuario}`, {
                     method: 'POST',
                     body: formData
                 });

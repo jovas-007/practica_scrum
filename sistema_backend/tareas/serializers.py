@@ -41,6 +41,7 @@ class SubmissionStudentSerializer(serializers.ModelSerializer):
     """Serializer para entregas (vista estudiante)"""
     
     archivos = SubmissionFileSerializer(many=True, read_only=True)
+    task_id = serializers.IntegerField(source='task.id', read_only=True)
     tarea_titulo = serializers.CharField(source='task.titulo', read_only=True)
     tarea_descripcion = serializers.CharField(source='task.descripcion', read_only=True)
     tarea_fecha_entrega = serializers.DateTimeField(source='task.fecha_entrega', read_only=True)
@@ -53,7 +54,7 @@ class SubmissionStudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
         fields = [
-            'id', 'estado', 'fecha_creacion',
+            'id', 'task_id', 'estado', 'fecha_creacion',
             'calificacion', 'comentario_docente', 'fecha_calificacion',
             'archivos', 'tarea_titulo', 'tarea_descripcion', 'tarea_fecha_entrega',
             'tarea_puntos_maximos', 'tarea_archivo_adjunto', 'tarea_url_recurso',

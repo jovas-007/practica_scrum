@@ -2,14 +2,6 @@
 
 Aplicación Angular 20 + Django REST Framework con MySQL para gestión de tareas con login por rol (docente/estudiante), recuperación de contraseña por correo y recordatorios automáticos.
 
-## Arquitectura
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Angular 20    │────▶│  Django + DRF   │────▶│  MySQL (XAMPP)  │
-│   Puerto 4200   │     │   Puerto 3000   │     │   Puerto 3307   │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-```
 
 ## Requisitos
 
@@ -46,42 +38,45 @@ npm install
 
 ## Ejecución
 
-### Backend Django (puerto 3000)
+### Backend Django (puerto 8000)
 
-```bash
+```powershell
 cd sistema_backend
 .\venv\Scripts\Activate.ps1
-python manage.py runserver 3000
+python manage.py runserver
 ```
 
-### Frontend Angular (puerto 4200)
+### Frontend (puerto 4200)
 
-```bash
-npm start
+```powershell
+npx http-server src -p 4200 -c-1
 ```
 
 ### Todo junto (2 terminales)
 
 **Terminal 1 - Backend:**
-```bash
-cd sistema_backend && .\venv\Scripts\Activate.ps1 && python manage.py runserver 3000
+```powershell
+cd sistema_backend && .\venv\Scripts\Activate.ps1 && python manage.py runserver
 ```
 
 **Terminal 2 - Frontend:**
-```bash
-npm start
+```powershell
+npx http-server src -p 4200 -c-1
 ```
 
-## URLs
+### URLs de acceso
 
-| Servicio | URL |
-|----------|-----|
-| Login Angular | http://localhost:4200 |
-| Dashboard Docente | http://localhost:3000/src/screens/admin-dashboard.html |
-| Dashboard Estudiante | http://localhost:3000/src/screens/student-dashboard.html |
-| API REST | http://localhost:3000/api/ |
+| Componente | URL |
+|------------|-----|
+| Login (inicio) | http://localhost:4200/ |
+| Dashboard Docente | http://localhost:4200/screens/admin-dashboard.html |
+| Dashboard Estudiante | http://localhost:4200/screens/student-dashboard.html |
+| Backend API | http://127.0.0.1:8000/api/ |
+| Admin Django | http://127.0.0.1:8000/admin/ |
 
 ## API Endpoints
+
+### Autenticación
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
@@ -90,6 +85,17 @@ npm start
 | POST | `/api/forgot-password` | Solicitar código de recuperación |
 | POST | `/api/verify-recovery-code` | Verificar código |
 | POST | `/api/reset-password` | Restablecer contraseña |
+
+### Tareas
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/tareas/` | Listar todas las tareas |
+| POST | `/api/tareas/` | Crear nueva tarea (docente) |
+| GET | `/api/tareas/{id}/` | Obtener detalle de tarea |
+| PUT | `/api/tareas/{id}/` | Actualizar tarea (docente) |
+| DELETE | `/api/tareas/{id}/` | Eliminar tarea (docente) |
+| POST | `/api/tareas/{id}/entregar/` | Entregar tarea (estudiante) |
 
 ## Configuración de correo
 
@@ -119,18 +125,22 @@ practica_scrum/
 │   │   ├── serializers.py    # Validación DRF
 │   │   ├── email_service.py  # Servicio de correo
 │   │   └── urls.py           # Rutas /api/
+│   ├── tareas/               # App de tareas
+│   │   ├── models.py         # Tarea, Entrega
+│   │   ├── views.py          # CRUD tareas
+│   │   ├── serializers.py    # Serialización tareas
+│   │   └── urls.py           # Rutas /api/tareas/
 │   ├── manage.py
 │   └── requirements.txt
-├── src/                      # Frontend Angular
-│   ├── screens/              # Componentes de pantalla
-│   │   ├── login.component.ts
-│   │   ├── admin-dashboard.html
-│   │   └── student-dashboard.html
-│   ├── services/
-│   │   └── auth.service.ts   # Servicio de autenticación
+├── src/                      # Frontend HTML/JS
+│   ├── index.html            # Redirección a login
+│   ├── login.html            # Página de login/registro
+│   ├── screens/              # Dashboards
+│   │   ├── admin-dashboard.html   # Dashboard docente
+│   │   └── student-dashboard.html # Dashboard estudiante
 │   └── assets/
-├── package.json
-└── angular.json
+│       └── diseños.css
+└── README.md
 ```
 
 ## Modelos de base de datos
@@ -182,10 +192,18 @@ python manage.py createsuperuser
 
 | Componente | Tecnología | Versión |
 |------------|------------|---------|
-| Frontend | Angular | 20 |
+| Frontend | HTML + JS + http-server | - |
 | Backend | Django | 4.2 |
 | API | Django REST Framework | 3.16 |
 | Base de datos | MySQL (XAMPP) | 8.0 |
 | Conector DB | PyMySQL | 1.1 |
 | Hash passwords | bcrypt | 4.2 |
 | Correo | Gmail SMTP | - |
+
+## Usuario de prueba
+
+| Campo | Valor |
+|-------|-------|
+| Matrícula | `999888777` |
+| Contraseña | `Password123!` |
+| Rol | docente |
