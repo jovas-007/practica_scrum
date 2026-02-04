@@ -1,2 +1,3 @@
-# Config package
-# PyMySQL se configura en settings.py solo para desarrollo local
+# Usar PyMySQL como reemplazo de MySQLdb (requerido por django-tidb)
+import pymysql
+pymysql.install_as_MySQLdb()
