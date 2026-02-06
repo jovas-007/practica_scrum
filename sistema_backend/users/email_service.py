@@ -8,13 +8,14 @@ Brevo envía por HTTPS (puerto 443) → funciona en Railway.
 
 Tier gratuito: 300 emails/día (9000/mes).
 """
+import os
 import requests
 import logging
 
 logger = logging.getLogger(__name__)
 
 # ── Configuración Brevo ──────────────────────────────────────────
-BREVO_API_KEY = 'gjANBPCLOvQ2b0Rm'  # Brevo API key
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 BREVO_SENDER_EMAIL = 'secretaria.instituto.aca@gmail.com'
 BREVO_SENDER_NAME = 'Sistema de Tareas BUAP'
 BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
@@ -88,8 +89,8 @@ def test_email_connection() -> dict:
     config = {
         'backend': 'brevo_http_api',
         'sender_email': BREVO_SENDER_EMAIL,
-        'api_key_set': BREVO_API_KEY != 'TU_API_KEY_DE_BREVO_AQUI' and bool(BREVO_API_KEY),
-        'api_key_preview': BREVO_API_KEY[:8] + '...' if len(BREVO_API_KEY) > 8 else '(no configurada)',
+        'api_key_set': bool(BREVO_API_KEY),
+        'api_key_preview': BREVO_API_KEY[:12] + '...' if len(BREVO_API_KEY) > 12 else '(no configurada)',
     }
     logger.info(f"[TEST] Probando conexión Brevo: {config}")
 
