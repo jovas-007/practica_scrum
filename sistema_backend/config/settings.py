@@ -186,24 +186,16 @@ CORS_ALLOW_HEADERS = [
     'x-user-id',
 ]
 
-# Configuración de Email
-# ─── Producción (Railway): usa Resend HTTP API ───
-# Railway bloquea SMTP saliente (puertos 25/465/587).
-# Resend envía emails vía HTTP → no necesita SMTP.
-# Configura RESEND_API_KEY en las variables de entorno de Railway.
-RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
-
-# ─── Desarrollo local: usa Django SMTP con Gmail App Password ───
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
-EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() == 'true'
-EMAIL_HOST_USER = os.environ.get('EMAIL_USER', 'secretaria.instituto.aca@gmail.com')
-_raw_email_password = os.environ.get('EMAIL_PASSWORD', 'ffhd mnft jbnj cglc')
-EMAIL_HOST_PASSWORD = _raw_email_password.replace(' ', '')
+# Configuración de Email - Gmail SMTP con App Password
+# El email_service.py usa smtplib directo con IPv4 forzado
+# (Railway resuelve DNS a IPv6 pero no lo rutea → "Network is unreachable")
+# Las credenciales se leen desde variables de entorno o valores por defecto.
+# En Railway, configurar EMAIL_USER y EMAIL_PASSWORD como variables de entorno.
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'secretaria.instituto.aca@gmail.com'
+EMAIL_HOST_PASSWORD = 'ffhdmnftjbnjcglc'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-EMAIL_TIMEOUT = 30
 
 # Logging para diagnosticar problemas de email en producción
 LOGGING = {
