@@ -19,5 +19,7 @@ urlpatterns = [
     
     # Email / Recordatorios
     path('test-reminders', views.test_reminders, name='test-reminders'),
+    path('test-reminders/', views.test_reminders),
     path('test-smtp', views.test_smtp, name='test-smtp'),
+    path('test-smtp/', views.test_smtp),
 ]
