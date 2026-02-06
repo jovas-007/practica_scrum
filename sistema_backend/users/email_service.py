@@ -2,18 +2,19 @@
 Servicio de Email para el Sistema de Gestión de Tareas
 Maneja recuperación de contraseña y recordatorios
 """
+import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from django.conf import settings
 
 
-# Configuración de Gmail - CAMBIAR POR TUS CREDENCIALES
+# Configuración de Gmail desde variables de entorno
 EMAIL_CONFIG = {
-    'host': 'smtp.gmail.com',
-    'port': 587,
-    'user': 'secretaria.instituto.aca@gmail.com',  # ← Cambia esto por tu Gmail
-    'password': 'ffhd mnft jbnj cglc',  # ← Cambia esto por tu contraseña de aplicación
+    'host': os.environ.get('EMAIL_HOST', 'smtp.gmail.com'),
+    'port': int(os.environ.get('EMAIL_PORT', 587)),
+    'user': os.environ.get('EMAIL_USER', 'secretaria.instituto.aca@gmail.com'),
+    'password': os.environ.get('EMAIL_PASSWORD', 'ffhd mnft jbnj cglc'),
 }
 
 
