@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Estudiante - Sistema de Gestión de Tareas</title>
     <link rel="stylesheet" href="../assets/diseños.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -624,6 +627,21 @@
         .grade-cell.medium { color: #d97706; }
         .grade-cell.low { color: #dc2626; }
 
+        #calendar {
+            margin-top: 10px;
+        }
+
+        .calendar-tooltip {
+            position: absolute;
+            background: #1e293b;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -759,6 +777,15 @@
                     </div>
                 </div>
             </section>
+            <section>
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Calendario de tareas</h5>
+                    <div id="calendar"></div>
+                </div>
+            </div>
+
+            </section>
         </main>
     </div>
 
@@ -831,6 +858,11 @@
                     <h4> Historial de Entregas</h4>
                     <div class="submission-history" id="historialEntregas"></div>
                 </div>
+              
+                
+               
+                </div>
+
             </div>
         </div>
     </div>
@@ -841,6 +873,54 @@
         let currentUser = null;
         let tareaActual = null;
         let archivosParaSubir = [];
+        let calendar;
+
+        // ==================== CALENDARIO ====================
+        function inicializarCalendario(eventos) {
+            const calendarEl = document.getElementById('calendar');
+
+            if (!calendarEl) return;
+
+            if (calendar) {
+                calendar.removeAllEvents();
+                calendar.addEventSource(eventos);
+                return;
+            }
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'es',
+                height: 500,
+                events: eventos,
+
+                eventClick(info) {
+                    console.log('Tarea:', info.event.extendedProps.taskId);
+                },
+                eventMouseEnter: mostrarTooltipCalendarios
+            });
+
+            calendar.render();
+        }
+        function mostrarTooltipCalendario(info) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'calendar-tooltip';
+            tooltip.innerHTML = `
+                <strong>${info.event.title}</strong><br>
+                Estado: ${info.event.extendedProps.estado}<br>
+                Puntos: ${info.event.extendedProps.puntos}
+                ${info.event.extendedProps.calificacion ? `<br>Calificación: ${info.event.extendedProps.calificacion}` : ''}
+            `;
+
+            document.body.appendChild(tooltip);
+
+            info.el.addEventListener('mousemove', e => {
+                tooltip.style.left = e.pageX + 10 + 'px';
+                tooltip.style.top = e.pageY + 10 + 'px';
+            });
+
+            info.el.addEventListener('mouseleave', () => tooltip.remove());
+        }
+
 
         // ==================== INICIALIZACIÓN ====================
         document.addEventListener('DOMContentLoaded', () => {
@@ -954,44 +1034,90 @@
         }
 
         // ==================== DASHBOARD ====================
-        async function cargarDashboard() {
-            try {
-                const response = await fetch(`${API_URL}/my-tasks/`, {
-                    headers: getHeaders()
+      async function cargarDashboard() {
+    try {
+        // =====================
+        // TAREAS + CALENDARIO
+        // =====================
+        const response = await fetch(`${API_URL}/my-tasks/`, {
+            headers: getHeaders()
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('totalPendientes').textContent = data.pendientes.length;
+            document.getElementById('totalEntregadas').textContent = data.entregadas.length;
+            document.getElementById('totalCalificadas').textContent = data.calificadas.length;
+
+            const eventos = [];
+
+            // 🔴 Pendientes
+            data.pendientes.forEach(t => {
+                eventos.push({
+                    title: t.titulo,
+                    start: t.fecha_entrega,
+                    backgroundColor: '#dc2626',
+                    borderColor: '#dc2626',
+                    extendedProps: {
+                        taskId: t.task_id,
+                        estado: 'Pendiente'
+                    }
                 });
-                const data = await response.json();
+            });
 
-                if (data.success) {
-                    document.getElementById('totalPendientes').textContent = data.pendientes.length;
-                    document.getElementById('totalEntregadas').textContent = data.entregadas.length;
-                    document.getElementById('totalCalificadas').textContent = data.calificadas.length;
-
-                    // Mostrar tareas próximas a vencer
-                    const proximas = data.pendientes
-                        .filter(t => !t.esta_vencida)
-                        .sort((a, b) => new Date(a.fecha_entrega) - new Date(b.fecha_entrega))
-                        .slice(0, 3);
-                    
-                    renderTareasProximas(proximas);
-                }
-
-                // Cargar calificaciones para el promedio
-                const calResponse = await fetch(`${API_URL}/my-submissions/`, {
-                    headers: getHeaders()
+            // 🟢 Entregadas
+            data.entregadas.forEach(t => {
+                eventos.push({
+                    title: t.titulo,
+                    start: t.fecha_entrega,
+                    backgroundColor: '#16a34a',
+                    borderColor: '#16a34a',
+                    extendedProps: {
+                        taskId: t.task_id,
+                        estado: 'Entregada'
+                    }
                 });
-                const calData = await calResponse.json();
+            });
 
-                if (calData.success) {
-                    document.getElementById('promedioGeneral').textContent = 
-                        calData.promedio ? calData.promedio.toFixed(1) : '-';
-                    
-                    renderUltimasCalificaciones(calData.calificaciones.slice(0, 5));
-                }
+            // 🟢 Calificadas
+            data.calificadas.forEach(t => {
+                eventos.push({
+                    title: t.titulo,
+                    start: t.fecha_entrega,
+                    backgroundColor: '#15803d',
+                    borderColor: '#15803d',
+                    extendedProps: {
+                        taskId: t.task_id,
+                        estado: 'Calificada',
+                        calificacion: t.calificacion
+                    }
+                });
+            });
 
-            } catch (error) {
-                console.error('Error:', error);
-            }
+            inicializarCalendario(eventos);
         }
+
+        // =====================
+        // PROMEDIO
+        // =====================
+        const calResponse = await fetch(`${API_URL}/my-submissions/`, {
+            headers: getHeaders()
+        });
+
+        const calData = await calResponse.json();
+
+        if (calData.success) {
+            document.getElementById('promedioGeneral').textContent =
+                calData.promedio ? calData.promedio.toFixed(1) : '-';
+
+            renderUltimasCalificaciones(calData.calificaciones.slice(0, 5));
+        }
+
+    } catch (error) {
+        console.error('Error cargando dashboard:', error);
+    }
+}
 
         function renderTareasProximas(tareas) {
             const container = document.getElementById('tareasProximas');
@@ -1482,6 +1608,7 @@
             document.cookie = 'currentUser=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             window.location.href = '../login.html';
         }
+        
     </script>
 </body>
 </html>
