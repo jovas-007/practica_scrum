@@ -1,113 +1,84 @@
 """
 Servicio de Email para el Sistema de Gestión de Tareas
 Maneja recuperación de contraseña, notificaciones y recordatorios.
-Usa Django SMTP Backend con Gmail App Password.
+
+Backend dual:
+  - Producción (Railway): Resend HTTP API (SMTP bloqueado por Railway)
+  - Desarrollo local: Django SMTP con Gmail App Password
+
+Se selecciona automáticamente según la variable RESEND_API_KEY.
 """
-from django.core.mail import EmailMultiAlternatives, get_connection
-from django.conf import settings
-import smtplib
+import os
+import requests
 import logging
 
 logger = logging.getLogger(__name__)
 
-
-def _diagnose_smtp_error(error: Exception) -> str:
-    """Genera un mensaje de diagnóstico legible para errores SMTP comunes."""
-    err_str = str(error).lower()
-    err_type = type(error).__name__
-
-    if isinstance(error, smtplib.SMTPAuthenticationError):
-        return (
-            f"AUTENTICACIÓN FALLIDA ({err_type}): Gmail rechazó las credenciales. "
-            "Verifica que: 1) La cuenta tenga 2FA activado, "
-            "2) La App Password sea correcta (sin espacios), "
-            "3) La variable EMAIL_PASSWORD esté configurada en Railway."
-        )
-    if isinstance(error, smtplib.SMTPConnectError):
-        return (
-            f"CONEXIÓN FALLIDA ({err_type}): No se pudo conectar a smtp.gmail.com:587. "
-            "Verifica que Railway permita conexiones SMTP salientes."
-        )
-    if isinstance(error, (TimeoutError, smtplib.SMTPServerDisconnected)):
-        return (
-            f"TIMEOUT / DESCONEXIÓN ({err_type}): El servidor SMTP no respondió. "
-            "Puede ser un bloqueo de puerto en Railway o problema de red."
-        )
-    if isinstance(error, smtplib.SMTPRecipientsRefused):
-        return (
-            f"DESTINATARIO RECHAZADO ({err_type}): {err_str}. "
-            "Verifica que la dirección del destinatario sea válida."
-        )
-    if 'ssl' in err_str or 'certificate' in err_str:
-        return (
-            f"ERROR SSL/TLS ({err_type}): {err_str}. "
-            "Intenta cambiar EMAIL_USE_TLS/EMAIL_USE_SSL en settings."
-        )
-    return f"{err_type}: {error}"
+# ── Detección automática del backend ──────────────────────────────
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+# Remitente para Resend: necesita dominio verificado o usa el de prueba
+RESEND_FROM = os.environ.get('RESEND_FROM', 'Sistema de Tareas BUAP <onboarding@resend.dev>')
+USE_RESEND = bool(RESEND_API_KEY)
 
 
-def test_smtp_connection() -> dict:
-    """
-    Prueba la conexión SMTP sin enviar un email.
-    Útil para diagnosticar problemas de configuración.
-    
-    Returns:
-        dict con 'success', 'message' y detalles de configuración.
-    """
-    config = {
-        'host': settings.EMAIL_HOST,
-        'port': settings.EMAIL_PORT,
-        'use_tls': settings.EMAIL_USE_TLS,
-        'use_ssl': settings.EMAIL_USE_SSL,
-        'user': settings.EMAIL_HOST_USER,
-        'password_set': bool(settings.EMAIL_HOST_PASSWORD),
-        'password_length': len(settings.EMAIL_HOST_PASSWORD) if settings.EMAIL_HOST_PASSWORD else 0,
-    }
-    logger.info(f"[SMTP TEST] Configuración: {config}")
-
+# ── Backend: Resend HTTP API ─────────────────────────────────────
+def _send_via_resend(to_email: str, subject: str, html_content: str) -> bool:
+    """Envía email usando Resend REST API (funciona en Railway)."""
     try:
-        connection = get_connection(
-            backend=settings.EMAIL_BACKEND,
-            host=settings.EMAIL_HOST,
-            port=settings.EMAIL_PORT,
-            username=settings.EMAIL_HOST_USER,
-            password=settings.EMAIL_HOST_PASSWORD,
-            use_tls=settings.EMAIL_USE_TLS,
-            use_ssl=settings.EMAIL_USE_SSL,
-            timeout=settings.EMAIL_TIMEOUT,
+        logger.info(f"[RESEND] Enviando a: {to_email} | From: {RESEND_FROM}")
+        response = requests.post(
+            'https://api.resend.com/emails',
+            headers={
+                'Authorization': f'Bearer {RESEND_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'from': RESEND_FROM,
+                'to': [to_email],
+                'subject': subject,
+                'html': html_content,
+            },
+            timeout=30,
         )
-        connection.open()
-        connection.close()
-        logger.info("[SMTP TEST] ✅ Conexión SMTP exitosa")
-        return {'success': True, 'message': 'Conexión SMTP exitosa', 'config': config}
+
+        if response.status_code in (200, 201):
+            data = response.json()
+            logger.info(f"[RESEND] ✅ Email enviado a {to_email} (id: {data.get('id', '?')})")
+            print(f"✅ Email enviado exitosamente a {to_email}")
+            return True
+        else:
+            logger.error(
+                f"[RESEND] ❌ Error {response.status_code} enviando a {to_email}: "
+                f"{response.text}"
+            )
+            print(f"❌ Resend error {response.status_code}: {response.text}")
+            return False
+
+    except requests.exceptions.Timeout:
+        logger.error(f"[RESEND] ❌ Timeout conectando a api.resend.com")
+        print(f"❌ Timeout conectando a Resend API")
+        return False
     except Exception as e:
-        diagnosis = _diagnose_smtp_error(e)
-        logger.error(f"[SMTP TEST] ❌ {diagnosis}")
-        return {'success': False, 'message': diagnosis, 'config': config}
+        logger.error(f"[RESEND] ❌ Error inesperado: {type(e).__name__}: {e}")
+        print(f"❌ Error inesperado enviando email: {e}")
+        return False
 
 
-def send_email(to_email: str, subject: str, html_content: str) -> bool:
-    """
-    Enviar email usando Django Mail (configurado con Gmail SMTP).
-    
-    Args:
-        to_email: Correo del destinatario
-        subject: Asunto del email
-        html_content: Contenido HTML del email
-    
-    Returns:
-        bool: True si se envió correctamente, False en caso de error
-    """
+# ── Backend: Django SMTP (desarrollo local) ──────────────────────
+def _send_via_smtp(to_email: str, subject: str, html_content: str) -> bool:
+    """Envía email usando Django SMTP Backend (Gmail App Password)."""
     try:
-        logger.info(f"[EMAIL] Preparando envío a: {to_email}")
-        logger.debug(f"[EMAIL] From: {settings.EMAIL_HOST_USER} | "
-                      f"Host: {settings.EMAIL_HOST}:{settings.EMAIL_PORT} | "
-                      f"TLS: {settings.EMAIL_USE_TLS}")
-
-        # Texto plano como fallback
+        from django.core.mail import EmailMultiAlternatives
+        from django.conf import settings
         from django.utils.html import strip_tags
-        plain_text = strip_tags(html_content)
 
+        logger.info(f"[SMTP] Enviando a: {to_email} | From: {settings.EMAIL_HOST_USER}")
+        logger.debug(
+            f"[SMTP] Host: {settings.EMAIL_HOST}:{settings.EMAIL_PORT} | "
+            f"TLS: {settings.EMAIL_USE_TLS}"
+        )
+
+        plain_text = strip_tags(html_content)
         email = EmailMultiAlternatives(
             subject=subject,
             body=plain_text,
@@ -117,15 +88,98 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
         email.attach_alternative(html_content, "text/html")
         email.send(fail_silently=False)
 
-        logger.info(f"[EMAIL] ✅ Enviado exitosamente a {to_email}")
+        logger.info(f"[SMTP] ✅ Enviado exitosamente a {to_email}")
         print(f"✅ Email enviado exitosamente a {to_email}")
         return True
 
     except Exception as e:
-        diagnosis = _diagnose_smtp_error(e)
-        logger.error(f"[EMAIL] ❌ Falló envío a {to_email}: {diagnosis}")
-        print(f"❌ Error al enviar email a {to_email}: {diagnosis}")
+        logger.error(f"[SMTP] ❌ Falló envío a {to_email}: {type(e).__name__}: {e}")
+        print(f"❌ Error al enviar email a {to_email}: {type(e).__name__}: {e}")
         return False
+
+
+# ── Función principal de envío ────────────────────────────────────
+def send_email(to_email: str, subject: str, html_content: str) -> bool:
+    """
+    Enviar email usando el backend disponible.
+    - Si RESEND_API_KEY está configurada → usa Resend HTTP API
+    - Si no → usa Django SMTP (Gmail)
+    """
+    backend = 'Resend HTTP' if USE_RESEND else 'Django SMTP'
+    logger.info(f"[EMAIL] Backend: {backend} | Destino: {to_email}")
+
+    if USE_RESEND:
+        return _send_via_resend(to_email, subject, html_content)
+    else:
+        return _send_via_smtp(to_email, subject, html_content)
+
+
+# ── Diagnóstico ──────────────────────────────────────────────────
+def test_email_connection() -> dict:
+    """
+    Prueba la conexión al servicio de email configurado.
+    """
+    config = {
+        'backend': 'resend' if USE_RESEND else 'smtp',
+        'resend_api_key_set': bool(RESEND_API_KEY),
+        'resend_from': RESEND_FROM if USE_RESEND else None,
+    }
+
+    if USE_RESEND:
+        # Probar que la API key es válida consultando los dominios
+        try:
+            resp = requests.get(
+                'https://api.resend.com/domains',
+                headers={'Authorization': f'Bearer {RESEND_API_KEY}'},
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                logger.info("[TEST] ✅ Resend API key válida")
+                return {
+                    'success': True,
+                    'message': 'Resend API key válida y conectada',
+                    'config': config,
+                }
+            else:
+                msg = f'Resend respondió {resp.status_code}: {resp.text}'
+                logger.error(f"[TEST] ❌ {msg}")
+                return {'success': False, 'message': msg, 'config': config}
+        except Exception as e:
+            msg = f'Error conectando a Resend API: {type(e).__name__}: {e}'
+            logger.error(f"[TEST] ❌ {msg}")
+            return {'success': False, 'message': msg, 'config': config}
+    else:
+        # Probar conexión SMTP
+        try:
+            from django.core.mail import get_connection
+            from django.conf import settings
+
+            config.update({
+                'smtp_host': settings.EMAIL_HOST,
+                'smtp_port': settings.EMAIL_PORT,
+                'smtp_tls': settings.EMAIL_USE_TLS,
+                'smtp_user': settings.EMAIL_HOST_USER,
+                'smtp_password_set': bool(settings.EMAIL_HOST_PASSWORD),
+            })
+
+            connection = get_connection(
+                backend=settings.EMAIL_BACKEND,
+                host=settings.EMAIL_HOST,
+                port=settings.EMAIL_PORT,
+                username=settings.EMAIL_HOST_USER,
+                password=settings.EMAIL_HOST_PASSWORD,
+                use_tls=settings.EMAIL_USE_TLS,
+                use_ssl=settings.EMAIL_USE_SSL,
+                timeout=settings.EMAIL_TIMEOUT,
+            )
+            connection.open()
+            connection.close()
+            logger.info("[TEST] ✅ Conexión SMTP exitosa")
+            return {'success': True, 'message': 'Conexión SMTP exitosa', 'config': config}
+        except Exception as e:
+            msg = f'{type(e).__name__}: {e}'
+            logger.error(f"[TEST] ❌ SMTP falló: {msg}")
+            return {'success': False, 'message': msg, 'config': config}
 
 
 def send_recovery_code_email(nombre_completo: str, correo: str, code: str) -> bool:

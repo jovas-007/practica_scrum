@@ -186,14 +186,20 @@ CORS_ALLOW_HEADERS = [
     'x-user-id',
 ]
 
-# Configuración de Email - Django Mail Backend (Gmail SMTP + App Password)
+# Configuración de Email
+# ─── Producción (Railway): usa Resend HTTP API ───
+# Railway bloquea SMTP saliente (puertos 25/465/587).
+# Resend envía emails vía HTTP → no necesita SMTP.
+# Configura RESEND_API_KEY en las variables de entorno de Railway.
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+
+# ─── Desarrollo local: usa Django SMTP con Gmail App Password ───
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() == 'true'
 EMAIL_HOST_USER = os.environ.get('EMAIL_USER', 'secretaria.instituto.aca@gmail.com')
-# Gmail App Passwords: quitar espacios para compatibilidad con smtplib
 _raw_email_password = os.environ.get('EMAIL_PASSWORD', 'ffhd mnft jbnj cglc')
 EMAIL_HOST_PASSWORD = _raw_email_password.replace(' ', '')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

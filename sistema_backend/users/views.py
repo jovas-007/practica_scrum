@@ -236,22 +236,22 @@ def reset_password(request):
 def test_reminders(request):
     """
     POST /api/test-reminders
-    Probar conexión SMTP y envío de email (para desarrollo/diagnóstico)
+    Probar conexión al servicio de email y enviar email de prueba.
+    Body opcional: { "correo": "destino@ejemplo.com" }
     """
-    from .email_service import test_smtp_connection, send_recovery_code_email
+    from .email_service import test_email_connection, send_recovery_code_email
 
-    # Paso 1: Probar conexión SMTP
-    smtp_result = test_smtp_connection()
-    if not smtp_result['success']:
+    # Paso 1: Probar conexión al servicio de email
+    conn_result = test_email_connection()
+    if not conn_result['success']:
         return Response({
             'success': False,
-            'message': f'Error de conexión SMTP: {smtp_result["message"]}',
-            'config': smtp_result.get('config', {}),
+            'message': f'Error de conexión: {conn_result["message"]}',
+            'config': conn_result.get('config', {}),
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # Paso 2: Enviar email de prueba
     try:
-        # Usar correo del body o del primer docente
         to_email = request.data.get('correo')
         if not to_email:
             docente = User.objects.filter(rol='docente').first()
@@ -261,7 +261,7 @@ def test_reminders(request):
                 return Response({
                     'success': False,
                     'message': 'No hay docentes registrados y no se proporcionó correo destino',
-                    'smtp_connection': 'OK',
+                    'connection': 'OK',
                 }, status=status.HTTP_404_NOT_FOUND)
 
         success = send_recovery_code_email(
@@ -273,12 +273,14 @@ def test_reminders(request):
         if success:
             return Response({
                 'success': True,
-                'message': f'Conexión SMTP OK y email de prueba enviado a {to_email}',
+                'message': f'Email de prueba enviado a {to_email}',
+                'backend': conn_result['config']['backend'],
             })
         else:
             return Response({
                 'success': False,
-                'message': f'Conexión SMTP OK pero falló el envío a {to_email}. Revisa los logs.',
+                'message': f'Conexión OK pero falló el envío a {to_email}. Revisa los logs.',
+                'backend': conn_result['config']['backend'],
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except Exception as e:
@@ -292,11 +294,11 @@ def test_reminders(request):
 def test_smtp(request):
     """
     GET /api/test-smtp
-    Solo prueba la conexión SMTP sin enviar email.
+    Prueba la conexión al servicio de email sin enviar nada.
     Útil para verificar las variables de entorno en Railway.
     """
-    from .email_service import test_smtp_connection
+    from .email_service import test_email_connection
 
-    result = test_smtp_connection()
+    result = test_email_connection()
     http_status = status.HTTP_200_OK if result['success'] else status.HTTP_500_INTERNAL_SERVER_ERROR
     return Response(result, status=http_status)
