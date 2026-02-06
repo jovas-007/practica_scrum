@@ -153,9 +153,9 @@ class ResetPasswordSerializer(serializers.Serializer):
     
     correo = serializers.EmailField()
     code = serializers.CharField(max_length=6, min_length=6)
-    newPassword = serializers.CharField(min_length=8, max_length=20)
+    new_password = serializers.CharField(min_length=8, max_length=20)
     
-    def validate_newPassword(self, value):
+    def validate_new_password(self, value):
         """Validar que la nueva contraseña tenga letra, número y símbolo"""
         if not re.search(r'[a-zA-Z]', value):
             raise serializers.ValidationError('La contraseña debe contener al menos una letra')

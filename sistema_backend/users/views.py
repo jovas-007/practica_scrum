@@ -201,7 +201,7 @@ def reset_password(request):
     if serializer.is_valid():
         correo = serializer.validated_data['correo']
         code = serializer.validated_data['code']
-        new_password = serializer.validated_data['newPassword']
+        new_password = serializer.validated_data['new_password']
         
         print(f"[DEBUG] Buscando código para: correo={correo}, code={code}")
         
