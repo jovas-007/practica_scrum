@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráficas - Sistema de Gestión de Tareas</title>
+    <link rel="stylesheet" href="../assets/diseños.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #002855 0%, #004080 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .header.estudiante {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .badge-rol {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-docente {
+            background: #dc2626;
+        }
+
+        .badge-estudiante {
+            background: #002855;
+        }
+
+        .btn-back {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-back:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        /* Page Title */
+        .page-header {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .page-title {
+            font-size: 28px;
+            color: #1e293b;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .page-subtitle {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        /* Chart Cards */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-container.tall {
+            height: 400px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .progress-percentage {
+            font-size: 32px;
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 40px;
+            background: #e2e8f0;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+            border-radius: 20px;
+            transition: width 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+        }
+
+        .progress-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .progress-detail {
+            text-align: center;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .progress-detail-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .progress-detail-label {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #64748b;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #059669;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 15px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-card.full-width {
+                grid-column: 1;
+            }
+
+            .page-title {
+                font-size: 22px;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header" id="mainHeader">
+        <h1>📊 Análisis de Desempeño</h1>
+        <div class="user-info">
+            <span id="userName">Cargando...</span>
+            <span class="badge-rol" id="badgeRol">ESTUDIANTE</span>
+            <a href="#" class="btn-back" id="btnBack">← Volver al Dashboard</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-header">
+            <h2 class="page-title">
+                <span>📈</span>
+                <span id="pageTitle">Mi Progreso Académico</span>
+            </h2>
+            <p class="page-subtitle" id="pageSubtitle">Visualización detallada de tu desempeño en el curso</p>
+        </div>
+
+        <div id="loadingState" class="loading">
+            Cargando datos
+        </div>
+
+        <div id="mainContent" style="display: none;">
+            
+            <div id="progressSection" class="progress-container" style="display: none;">
+                <div class="progress-header">
+                    <div>
+                        <h3 class="progress-title">🎯 Progreso del Curso</h3>
+                        <p style="color: #64748b; font-size: 14px; margin-top: 5px;">
+                            Tu avance en las tareas asignadas
+                        </p>
+                    </div>
+                    <div class="progress-percentage" id="progressPercentage">0%</div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%;">
+                        <span id="progressBarText"></span>
+                    </div>
+                </div>
+
+                <div class="progress-details">
+                    <div class="progress-detail">
+                        <div class="progress-detail-value" id="totalAsignadas">0</div>
+                        <div class="progress-detail-label">📋 Total Asignadas</div>
+                    </div>
+                    <div class="progress-detail">
+                        <div class="progress-detail-value" style="color: #10b981;" id="totalEntregadas">0</div>
+                        <div class="progress-detail-label">✅ Entregadas</div>
+                    </div>
+                    <div class="progress-detail">
+                        <div class="progress-detail-value" style="color: #f59e0b;" id="totalPendientes">0</div>
+                        <div class="progress-detail-label">⏳ Pendientes</div>
+                    </div>
+                    <div class="progress-detail">
+                        <div class="progress-detail-value" style="color: #dc2626;" id="totalVencidas">0</div>
+                        <div class="progress-detail-label">⚠️ Vencidas</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid" id="statsGrid">
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">
+                        <span>📊</span>
+                        <span id="chartTitle1">Estado de Tareas</span>
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="chartEstadoTareas"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3 class="chart-title">
+                        <span>📈</span>
+                        <span>Distribución de Calificaciones</span>
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="chartCalificaciones"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card full-width">
+                    <h3 class="chart-title">
+                        <span>📉</span>
+                        <span id="chartTitle3">Tendencia de Desempeño</span>
+                    </h3>
+                    <div class="chart-container tall">
+                        <canvas id="chartTendencia"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        let currentUser = null;
+        let charts = {};
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userCookie = getCookie('currentUser');
+            const userLocal = localStorage.getItem('currentUser');
+            
+            if (userCookie) {
+                currentUser = JSON.parse(decodeURIComponent(userCookie));
+            } else if (userLocal) {
+                currentUser = JSON.parse(userLocal);
+            }
+
+            if (!currentUser) {
+                alert('Debe iniciar sesión');
+                window.location.href = '../login.html';
+                return;
+            }
+
+            document.getElementById('userName').textContent = currentUser.nombre_completo;
+            const badgeRol = document.getElementById('badgeRol');
+            const mainHeader = document.getElementById('mainHeader');
+            
+            if (currentUser.rol === 'docente') {
+                badgeRol.textContent = 'DOCENTE';
+                badgeRol.className = 'badge-rol badge-docente';
+                mainHeader.classList.remove('estudiante');
+                document.getElementById('btnBack').href = './admin-dashboard.html';
+            } else {
+                badgeRol.textContent = 'ESTUDIANTE';
+                badgeRol.className = 'badge-rol badge-estudiante';
+                mainHeader.classList.add('estudiante');
+                document.getElementById('btnBack').href = './student-dashboard.html';
+            }
+
+            await cargarDatos();
+        });
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'X-User-Id': currentUser.id_usuario
+            };
+        }
+
+        async function cargarDatos() {
+            try {
+                if (currentUser.rol === 'estudiante') {
+                    await cargarDatosEstudiante();
+                } else {
+                    await cargarDatosDocente();
+                }
+
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                document.getElementById('loadingState').innerHTML = `
+                    <div style="color: #dc2626;">
+                        <p>❌ Error al cargar los datos</p>
+                        <p style="font-size: 14px; margin-top: 10px;">Por favor, recarga la página</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function cargarDatosEstudiante() {
+            const tareasRes = await fetch(`${API_URL}/my-tasks/`, {
+                headers: getHeaders()
+            });
+            const tareasData = await tareasRes.json();
+
+            const calRes = await fetch(`${API_URL}/my-submissions/`, {
+                headers: getHeaders()
+            });
+            const calData = await calRes.json();
+
+            if (tareasData.success && calData.success) {
+                renderEstudianteStats(tareasData, calData);
+                renderEstudianteCharts(tareasData, calData);
+            }
+        }
+
+        function renderEstudianteStats(tareasData, calData) {
+            const totalTareas = tareasData.pendientes.length + tareasData.entregadas.length + tareasData.calificadas.length;
+            const entregadas = tareasData.entregadas.length + tareasData.calificadas.length;
+            const pendientes = tareasData.pendientes.filter(t => !t.esta_vencida).length;
+            const vencidas = tareasData.pendientes.filter(t => t.esta_vencida).length;
+            
+            const progreso = totalTareas > 0 ? Math.round((entregadas / totalTareas) * 100) : 0;
+
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('progressPercentage').textContent = `${progreso}%`;
+            document.getElementById('totalAsignadas').textContent = totalTareas;
+            document.getElementById('totalEntregadas').textContent = entregadas;
+            document.getElementById('totalPendientes').textContent = pendientes;
+            document.getElementById('totalVencidas').textContent = vencidas;
+
+            setTimeout(() => {
+                const progressBar = document.getElementById('progressBar');
+                progressBar.style.width = `${progreso}%`;
+                if (progreso >= 10) {
+                    document.getElementById('progressBarText').textContent = `${progreso}%`;
+                }
+            }, 100);
+
+            const statsHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value">${totalTareas}</div>
+                    <div class="stat-label">Total Tareas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value" style="color: #10b981;">${entregadas}</div>
+                    <div class="stat-label">Entregadas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-value" style="color: #3b82f6;">${calData.total_calificadas}</div>
+                    <div class="stat-label">Calificadas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-value" style="color: ${calData.promedio >= 8 ? '#10b981' : calData.promedio >= 6 ? '#f59e0b' : '#dc2626'};">
+                        ${calData.promedio ? calData.promedio.toFixed(1) : '-'}
+                    </div>
+                    <div class="stat-label">Promedio General</div>
+                </div>
+            `;
+            
+            document.getElementById('statsGrid').innerHTML = statsHTML;
+        }
+
+        function renderEstudianteCharts(tareasData, calData) {
+            const entregadas = tareasData.entregadas.length + tareasData.calificadas.length;
+            const pendientes = tareasData.pendientes.filter(t => !t.esta_vencida).length;
+            const vencidas = tareasData.pendientes.filter(t => t.esta_vencida).length;
+
+            const ctx1 = document.getElementById('chartEstadoTareas');
+            charts.estado = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Entregadas', 'Pendientes', 'Vencidas'],
+                    datasets: [{
+                        data: [entregadas, pendientes, vencidas],
+                        backgroundColor: [
+                            '#10b981',
+                            '#f59e0b',
+                            '#dc2626'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const rangos = {
+                'Excelente (9-10)': 0,
+                'Bueno (7-8)': 0,
+                'Regular (6)': 0,
+                'Bajo (<6)': 0
+            };
+
+            calData.calificaciones.forEach(c => {
+                if (c.calificacion >= 9) rangos['Excelente (9-10)']++;
+                else if (c.calificacion >= 7) rangos['Bueno (7-8)']++;
+                else if (c.calificacion >= 6) rangos['Regular (6)']++;
+                else rangos['Bajo (<6)']++;
+            });
+
+            const ctx2 = document.getElementById('chartCalificaciones');
+            charts.calificaciones = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(rangos),
+                    datasets: [{
+                        label: 'Cantidad',
+                        data: Object.values(rangos),
+                        backgroundColor: [
+                            '#10b981',
+                            '#3b82f6',
+                            '#f59e0b',
+                            '#dc2626'
+                        ],
+                        borderRadius: 8,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            const calificacionesOrdenadas = [...calData.calificaciones]
+                .sort((a, b) => new Date(a.fecha_calificacion) - new Date(b.fecha_calificacion))
+                .slice(-10); 
+
+            const ctx3 = document.getElementById('chartTendencia');
+            charts.tendencia = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: calificacionesOrdenadas.map(c => c.tarea.substring(0, 20) + '...'),
+                    datasets: [{
+                        label: 'Calificación',
+                        data: calificacionesOrdenadas.map(c => c.calificacion),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }, {
+                        label: 'Promedio',
+                        data: Array(calificacionesOrdenadas.length).fill(calData.promedio),
+                        borderColor: '#3b82f6',
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return calificacionesOrdenadas[context[0].dataIndex].tarea;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+
+        async function cargarDatosDocente() {
+            document.getElementById('pageTitle').textContent = 'Análisis General del Grupo';
+            document.getElementById('pageSubtitle').textContent = 'Estadísticas de desempeño de todos los estudiantes';
+            document.getElementById('chartTitle1').textContent = 'Estado General de Entregas';
+            document.getElementById('chartTitle3').textContent = 'Progreso por Tarea';
+
+            const tareasRes = await fetch(`${API_URL}/tasks/`, {
+                headers: getHeaders()
+            });
+            const tareasData = await tareasRes.json();
+
+        
+            const reportRes = await fetch(`${API_URL}/reports/grades/`, {
+                headers: getHeaders()
+            });
+            const reportData = await reportRes.json();
+
+            if (tareasData.success && reportData.success) {
+                renderDocenteStats(tareasData, reportData);
+                renderDocenteCharts(tareasData, reportData);
+            }
+        }
+
+        function renderDocenteStats(tareasData, reportData) {
+            const totalTareas = tareasData.tareas.length;
+            const tareasActivas = tareasData.tareas.filter(t => t.estado === 'activa').length;
+            const totalEstudiantes = reportData.reporte.length;
+            
+            let totalEntregados = 0;
+            let totalCalificados = 0;
+            tareasData.tareas.forEach(t => {
+                totalEntregados += t.total_entregados;
+                totalCalificados += t.total_calificados;
+            });
+
+            const statsHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-value">${totalTareas}</div>
+                    <div class="stat-label">Total Tareas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🟢</div>
+                    <div class="stat-value" style="color: #10b981;">${tareasActivas}</div>
+                    <div class="stat-label">Tareas Activas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" style="color: #3b82f6;">${totalEstudiantes}</div>
+                    <div class="stat-label">Estudiantes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value" style="color: #f59e0b;">${totalCalificados}</div>
+                    <div class="stat-label">Total Calificadas</div>
+                </div>
+            `;
+            
+            document.getElementById('statsGrid').innerHTML = statsHTML;
+        }
+
+        function renderDocenteCharts(tareasData, reportData) {
+            let totalPendientes = 0;
+            let totalEntregados = 0;
+            let totalCalificados = 0;
+
+            tareasData.tareas.forEach(t => {
+                if (t.estado !== 'borrador') {
+                    const pendientes = t.total_estudiantes - t.total_entregados;
+                    totalPendientes += pendientes;
+                    totalEntregados += (t.total_entregados - t.total_calificados);
+                    totalCalificados += t.total_calificados;
+                }
+            });
+
+            const ctx1 = document.getElementById('chartEstadoTareas');
+            charts.estado = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Calificados', 'Entregados', 'Pendientes'],
+                    datasets: [{
+                        data: [totalCalificados, totalEntregados, totalPendientes],
+                        backgroundColor: [
+                            '#10b981',
+                            '#3b82f6',
+                            '#f59e0b'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const rangos = {
+                'Excelente (9-10)': 0,
+                'Bueno (7-8)': 0,
+                'Regular (6)': 0,
+                'Bajo (<6)': 0
+            };
+
+            reportData.reporte.forEach(r => {
+                if (r.promedio >= 9) rangos['Excelente (9-10)']++;
+                else if (r.promedio >= 7) rangos['Bueno (7-8)']++;
+                else if (r.promedio >= 6) rangos['Regular (6)']++;
+                else if (r.promedio > 0) rangos['Bajo (<6)']++;
+            });
+
+            const ctx2 = document.getElementById('chartCalificaciones');
+            charts.calificaciones = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(rangos),
+                    datasets: [{
+                        label: 'Estudiantes',
+                        data: Object.values(rangos),
+                        backgroundColor: [
+                            '#10b981',
+                            '#3b82f6',
+                            '#f59e0b',
+                            '#dc2626'
+                        ],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            const tareasActivas = tareasData.tareas.filter(t => t.estado !== 'borrador').slice(-8);
+
+            const ctx3 = document.getElementById('chartTendencia');
+            charts.tendencia = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: tareasActivas.map(t => t.titulo.substring(0, 25) + '...'),
+                    datasets: [{
+                        label: 'Entregados',
+                        data: tareasActivas.map(t => t.total_entregados),
+                        backgroundColor: '#10b981',
+                        borderRadius: 6
+                    }, {
+                        label: 'Calificados',
+                        data: tareasActivas.map(t => t.total_calificados),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6
+                    }, {
+                        label: 'Pendientes',
+                        data: tareasActivas.map(t => t.total_estudiantes - t.total_entregados),
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: false
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
