@@ -186,16 +186,10 @@ CORS_ALLOW_HEADERS = [
     'x-user-id',
 ]
 
-# Configuración de Email - Gmail SMTP con App Password
-# El email_service.py usa smtplib directo con IPv4 forzado
-# (Railway resuelve DNS a IPv6 pero no lo rutea → "Network is unreachable")
-# Las credenciales se leen desde variables de entorno o valores por defecto.
-# En Railway, configurar EMAIL_USER y EMAIL_PASSWORD como variables de entorno.
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'secretaria.instituto.aca@gmail.com'
-EMAIL_HOST_PASSWORD = 'ffhdmnftjbnjcglc'
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# Configuración de Email - Brevo HTTP API
+# Railway bloquea SMTP. Brevo envía por HTTPS (puerto 443).
+# Tier gratuito: 300 emails/día.
+# La config real está en users/email_service.py (BREVO_API_KEY)
 
 # Logging para diagnosticar problemas de email en producción
 LOGGING = {

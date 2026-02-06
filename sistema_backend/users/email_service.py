@@ -2,68 +2,28 @@
 Servicio de Email para el Sistema de Gestión de Tareas
 Maneja recuperación de contraseña, notificaciones y recordatorios.
 
-Usa smtplib directo con Gmail App Password forzando IPv4.
-Railway resuelve smtp.gmail.com a IPv6 pero su red no tiene IPv6 activo,
-causando "Network is unreachable". Forzar IPv4 soluciona el problema.
+Usa Brevo (ex Sendinblue) HTTP API.
+Railway bloquea todo tráfico SMTP (puertos 25/465/587).
+Brevo envía por HTTPS (puerto 443) → funciona en Railway.
 
-Equivalente Python del nodemailer que usaban antes en Node.js.
-Límite: 500 emails/día (límite de Gmail, no de un tercero).
+Tier gratuito: 300 emails/día (9000/mes).
 """
-import os
-import smtplib
-import socket
+import requests
 import logging
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 logger = logging.getLogger(__name__)
 
-# ── Configuración Gmail ──────────────────────────────────────────
-EMAIL_USER = 'secretaria.instituto.aca@gmail.com'
-EMAIL_PASSWORD = 'ffhdmnftjbnjcglc'  # App Password sin espacios
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-
-
-# ── Parche IPv4: forzar resolución DNS a IPv4 ────────────────────
-_original_getaddrinfo = socket.getaddrinfo
-
-
-def _ipv4_getaddrinfo(*args, **kwargs):
-    """
-    Wrapper que filtra resultados DNS para devolver solo IPv4 (AF_INET).
-    Esto evita el error 'Network is unreachable' en Railway donde IPv6
-    está resuelto por DNS pero no es ruteable.
-    """
-    responses = _original_getaddrinfo(*args, **kwargs)
-    ipv4_only = [r for r in responses if r[0] == socket.AF_INET]
-    return ipv4_only if ipv4_only else responses
-
-
-def _create_smtp_connection():
-    """
-    Crea conexión SMTP a Gmail forzando IPv4.
-    Aplica el parche de DNS solo durante la conexión.
-    """
-    # Aplicar parche IPv4 temporalmente
-    socket.getaddrinfo = _ipv4_getaddrinfo
-    try:
-        server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT, timeout=30)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(EMAIL_USER, EMAIL_PASSWORD)
-        return server
-    finally:
-        # Restaurar getaddrinfo original
-        socket.getaddrinfo = _original_getaddrinfo
+# ── Configuración Brevo ──────────────────────────────────────────
+BREVO_API_KEY = 'gjANBPCLOvQ2b0Rm'  # Brevo API key
+BREVO_SENDER_EMAIL = 'secretaria.instituto.aca@gmail.com'
+BREVO_SENDER_NAME = 'Sistema de Tareas BUAP'
+BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 
 
 # ── Función principal de envío ────────────────────────────────────
 def send_email(to_email: str, subject: str, html_content: str) -> bool:
     """
-    Enviar email vía Gmail SMTP con IPv4 forzado.
-    Equivalente a nodemailer.createTransport({ service: 'gmail', ... })
+    Enviar email vía Brevo HTTP API.
 
     Args:
         to_email: Correo del destinatario
@@ -74,89 +34,109 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
         bool: True si se envió correctamente
     """
     try:
-        logger.info(f"[EMAIL] Enviando a: {to_email} | From: {EMAIL_USER} | "
-                     f"Host: {EMAIL_HOST}:{EMAIL_PORT} (IPv4 forzado)")
+        logger.info(f"[BREVO] Enviando a: {to_email} | Subject: {subject}")
 
-        # Construir mensaje MIME (equivalente a mailOptions en nodemailer)
-        msg = MIMEMultipart('alternative')
-        msg['From'] = EMAIL_USER
-        msg['To'] = to_email
-        msg['Subject'] = subject
-
-        # Versión texto plano (fallback)
-        import re
-        plain_text = re.sub(r'<[^>]+>', '', html_content)
-        plain_text = re.sub(r'\s+', ' ', plain_text).strip()
-
-        msg.attach(MIMEText(plain_text, 'plain', 'utf-8'))
-        msg.attach(MIMEText(html_content, 'html', 'utf-8'))
-
-        # Conectar y enviar
-        server = _create_smtp_connection()
-        try:
-            server.sendmail(EMAIL_USER, to_email, msg.as_string())
-        finally:
-            server.quit()
-
-        logger.info(f"[EMAIL] ✅ Enviado exitosamente a {to_email}")
-        print(f"✅ Email enviado exitosamente a {to_email}")
-        return True
-
-    except smtplib.SMTPAuthenticationError as e:
-        logger.error(
-            f"[EMAIL] ❌ AUTENTICACIÓN FALLIDA: Gmail rechazó las credenciales. "
-            f"Verifica EMAIL_USER y EMAIL_PASSWORD en Railway. Detalle: {e}"
+        response = requests.post(
+            BREVO_API_URL,
+            headers={
+                'accept': 'application/json',
+                'api-key': BREVO_API_KEY,
+                'content-type': 'application/json',
+            },
+            json={
+                'sender': {
+                    'name': BREVO_SENDER_NAME,
+                    'email': BREVO_SENDER_EMAIL,
+                },
+                'to': [{'email': to_email}],
+                'subject': subject,
+                'htmlContent': html_content,
+            },
+            timeout=30,
         )
-        print(f"❌ Error de autenticación Gmail: {e}")
-        return False
 
-    except (socket.timeout, smtplib.SMTPConnectError, OSError) as e:
-        logger.error(
-            f"[EMAIL] ❌ CONEXIÓN FALLIDA a {EMAIL_HOST}:{EMAIL_PORT}: "
-            f"{type(e).__name__}: {e}"
-        )
-        print(f"❌ Error de conexión SMTP: {type(e).__name__}: {e}")
-        return False
+        if response.status_code == 201:
+            data = response.json()
+            msg_id = data.get('messageId', '?')
+            logger.info(f"[BREVO] ✅ Email enviado a {to_email} (messageId: {msg_id})")
+            print(f"✅ Email enviado exitosamente a {to_email}")
+            return True
+        else:
+            logger.error(
+                f"[BREVO] ❌ Error {response.status_code} enviando a {to_email}: "
+                f"{response.text}"
+            )
+            print(f"❌ Brevo error {response.status_code}: {response.text}")
+            return False
 
+    except requests.exceptions.Timeout:
+        logger.error("[BREVO] ❌ Timeout conectando a api.brevo.com")
+        print("❌ Timeout conectando a Brevo API")
+        return False
     except Exception as e:
-        logger.error(f"[EMAIL] ❌ Error inesperado enviando a {to_email}: "
-                     f"{type(e).__name__}: {e}")
-        print(f"❌ Error al enviar email a {to_email}: {type(e).__name__}: {e}")
+        logger.error(f"[BREVO] ❌ Error inesperado: {type(e).__name__}: {e}")
+        print(f"❌ Error inesperado enviando email: {e}")
         return False
 
 
 # ── Diagnóstico ──────────────────────────────────────────────────
 def test_email_connection() -> dict:
     """
-    Prueba la conexión SMTP a Gmail con IPv4 forzado.
-    No envía ningún email, solo verifica autenticación.
+    Prueba la conexión a Brevo verificando la API key.
+    No envía ningún email.
     """
     config = {
-        'backend': 'gmail_smtp_ipv4',
-        'host': EMAIL_HOST,
-        'port': EMAIL_PORT,
-        'user': EMAIL_USER,
-        'password_set': bool(EMAIL_PASSWORD),
-        'password_length': len(EMAIL_PASSWORD),
+        'backend': 'brevo_http_api',
+        'sender_email': BREVO_SENDER_EMAIL,
+        'api_key_set': BREVO_API_KEY != 'TU_API_KEY_DE_BREVO_AQUI' and bool(BREVO_API_KEY),
+        'api_key_preview': BREVO_API_KEY[:8] + '...' if len(BREVO_API_KEY) > 8 else '(no configurada)',
     }
-    logger.info(f"[TEST] Probando conexión SMTP IPv4: {config}")
+    logger.info(f"[TEST] Probando conexión Brevo: {config}")
 
-    try:
-        server = _create_smtp_connection()
-        server.quit()
-        logger.info("[TEST] ✅ Conexión SMTP Gmail IPv4 exitosa")
+    if not config['api_key_set']:
         return {
-            'success': True,
-            'message': 'Conexión SMTP Gmail exitosa (IPv4 forzado)',
+            'success': False,
+            'message': 'BREVO_API_KEY no está configurada. Regístrate en brevo.com y pon tu API key.',
             'config': config,
         }
-    except smtplib.SMTPAuthenticationError as e:
-        msg = (f"Autenticación fallida: {e}. Verifica EMAIL_USER y EMAIL_PASSWORD "
-               f"en las variables de entorno de Railway.")
-        logger.error(f"[TEST] ❌ {msg}")
-        return {'success': False, 'message': msg, 'config': config}
+
+    try:
+        # Verificar API key consultando la cuenta
+        resp = requests.get(
+            'https://api.brevo.com/v3/account',
+            headers={
+                'accept': 'application/json',
+                'api-key': BREVO_API_KEY,
+            },
+            timeout=10,
+        )
+
+        if resp.status_code == 200:
+            account = resp.json()
+            plan = account.get('plan', [{}])
+            credits_info = plan[0].get('credits', 'N/A') if plan else 'N/A'
+            config['account_email'] = account.get('email', '?')
+            config['credits'] = credits_info
+            logger.info(f"[TEST] ✅ Brevo API key válida. Cuenta: {config['account_email']}")
+            return {
+                'success': True,
+                'message': f'Brevo conectado. Cuenta: {config["account_email"]}',
+                'config': config,
+            }
+        elif resp.status_code == 401:
+            logger.error("[TEST] ❌ API key inválida")
+            return {
+                'success': False,
+                'message': 'API key de Brevo inválida. Verifica la key en brevo.com → SMTP & API.',
+                'config': config,
+            }
+        else:
+            msg = f'Brevo respondió {resp.status_code}: {resp.text}'
+            logger.error(f"[TEST] ❌ {msg}")
+            return {'success': False, 'message': msg, 'config': config}
+
     except Exception as e:
-        msg = f"{type(e).__name__}: {e}"
+        msg = f'Error conectando a Brevo: {type(e).__name__}: {e}'
         logger.error(f"[TEST] ❌ {msg}")
         return {'success': False, 'message': msg, 'config': config}
 
