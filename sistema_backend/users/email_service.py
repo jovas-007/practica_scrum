@@ -1,26 +1,18 @@
 """
 Servicio de Email para el Sistema de Gestión de Tareas
 Maneja recuperación de contraseña y recordatorios
+Usa Django Mail Backend para mayor confiabilidad
 """
-import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
+import logging
 
-
-# Configuración de Gmail desde variables de entorno
-EMAIL_CONFIG = {
-    'host': os.environ.get('EMAIL_HOST', 'smtp.gmail.com'),
-    'port': int(os.environ.get('EMAIL_PORT', 587)),
-    'user': os.environ.get('EMAIL_USER', 'secretaria.instituto.aca@gmail.com'),
-    'password': os.environ.get('EMAIL_PASSWORD', 'ffhd mnft jbnj cglc'),
-}
+logger = logging.getLogger(__name__)
 
 
 def send_email(to_email: str, subject: str, html_content: str) -> bool:
     """
-    Enviar email usando SMTP de Gmail
+    Enviar email usando Django Mail (configurado con Gmail SMTP)
     
     Args:
         to_email: Correo del destinatario
@@ -30,57 +22,31 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
     Returns:
         bool: True si se envió correctamente, False en caso de error
     """
-    print(f"[EMAIL DEBUG] Intentando enviar a: {to_email}")
-    print(f"[EMAIL DEBUG] Usuario SMTP: {EMAIL_CONFIG['user']}")
-    
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = subject
-    msg['From'] = EMAIL_CONFIG['user']
-    msg['To'] = to_email
-    
-    # Adjuntar contenido HTML
-    html_part = MIMEText(html_content, 'html')
-    msg.attach(html_part)
-    
-    # Intentar primero con puerto 465 (SSL) - más confiable en hosting
     try:
-        print(f"[EMAIL DEBUG] Intentando conexión SSL en puerto 465...")
-        with smtplib.SMTP_SSL(EMAIL_CONFIG['host'], 465, timeout=15) as server:
-            print(f"[EMAIL DEBUG] Autenticando (SSL)...")
-            server.login(EMAIL_CONFIG['user'], EMAIL_CONFIG['password'])
-            print(f"[EMAIL DEBUG] Enviando mensaje...")
-            server.sendmail(EMAIL_CONFIG['user'], to_email, msg.as_string())
+        logger.info(f"[EMAIL] Enviando a: {to_email}")
         
-        print(f"✅ Email enviado exitosamente a {to_email} (SSL)")
+        # Crear email con Django
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body='Este email requiere un cliente que soporte HTML.',
+            from_email=settings.EMAIL_HOST_USER,
+            to=[to_email],
+        )
+        
+        # Adjuntar versión HTML
+        email.attach_alternative(html_content, "text/html")
+        
+        # Enviar
+        email.send(fail_silently=False)
+        
+        logger.info(f"✅ Email enviado exitosamente a {to_email}")
+        print(f"✅ Email enviado exitosamente a {to_email}")
         return True
         
-    except Exception as ssl_error:
-        print(f"[EMAIL DEBUG] Falló SSL (465): {type(ssl_error).__name__} - {str(ssl_error)}")
-        print(f"[EMAIL DEBUG] Intentando con TLS en puerto {EMAIL_CONFIG['port']}...")
-        
-        # Si SSL falla, intentar con TLS tradicional
-        try:
-            with smtplib.SMTP(EMAIL_CONFIG['host'], EMAIL_CONFIG['port'], timeout=15) as server:
-                print(f"[EMAIL DEBUG] Iniciando TLS...")
-                server.starttls()
-                print(f"[EMAIL DEBUG] Autenticando (TLS)...")
-                server.login(EMAIL_CONFIG['user'], EMAIL_CONFIG['password'])
-                print(f"[EMAIL DEBUG] Enviando mensaje...")
-                server.sendmail(EMAIL_CONFIG['user'], to_email, msg.as_string())
-            
-            print(f"✅ Email enviado exitosamente a {to_email} (TLS)")
-            return True
-            
-        except smtplib.SMTPAuthenticationError as e:
-            print(f"❌ Error de autenticación SMTP: {str(e)}")
-            print(f"   Verifica las credenciales de Gmail y contraseña de aplicación")
-            return False
-        except smtplib.SMTPException as e:
-            print(f"❌ Error SMTP al enviar email a {to_email}: {str(e)}")
-            return False
-        except Exception as e:
-            print(f"❌ Error general al enviar email a {to_email}: {type(e).__name__} - {str(e)}")
-            return False
+    except Exception as e:
+        logger.error(f"❌ Error al enviar email a {to_email}: {type(e).__name__} - {str(e)}")
+        print(f"❌ Error al enviar email a {to_email}: {type(e).__name__} - {str(e)}")
+        return False
 
 
 def send_recovery_code_email(nombre_completo: str, correo: str, code: str) -> bool:
