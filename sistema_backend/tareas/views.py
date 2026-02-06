@@ -1,3 +1,4 @@
+import threading
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -10,6 +11,11 @@ from .serializers import (
     GradeSubmissionSerializer, SubmitFileSerializer, StudentBasicSerializer
 )
 from users.models import User
+from users.email_service import (
+    send_task_assigned_email,
+    send_submission_received_email,
+    send_task_graded_email,
+)
 
 
 # ==================== ENDPOINTS DOCENTE ====================
@@ -181,7 +187,25 @@ def task_activate(request, task_id):
     
     # Contar estudiantes asignados
     total_estudiantes = tarea.submissions.count()
-    
+
+    # Notificar por email a todos los estudiantes asignados (en background)
+    def _notify_students():
+        fecha = tarea.fecha_entrega.strftime('%d/%m/%Y %H:%M') if tarea.fecha_entrega else 'Sin fecha'
+        for sub in tarea.submissions.select_related('student').all():
+            try:
+                send_task_assigned_email(
+                    nombre_completo=sub.student.nombre_completo,
+                    correo=sub.student.correo,
+                    titulo_tarea=tarea.titulo,
+                    descripcion=tarea.descripcion or '',
+                    fecha_entrega=fecha,
+                    docente_nombre=tarea.docente.nombre_completo,
+                )
+            except Exception as e:
+                print(f'[EMAIL] Error notificando a {sub.student.correo}: {e}')
+
+    threading.Thread(target=_notify_students, daemon=True).start()
+
     return Response({
         'success': True,
         'message': f'Tarea activada y asignada a {total_estudiantes} estudiantes',
@@ -276,7 +300,23 @@ def grade_submission(request, submission_id):
         submission.fecha_calificacion = timezone.now()
         submission.estado = 'calificado'
         submission.save()
-        
+
+        # Notificar al estudiante por email (en background)
+        def _notify_graded():
+            try:
+                send_task_graded_email(
+                    estudiante_nombre=submission.student.nombre_completo,
+                    estudiante_correo=submission.student.correo,
+                    titulo_tarea=submission.task.titulo,
+                    calificacion=submission.calificacion,
+                    puntos_maximos=10,
+                    comentario=submission.comentario_docente or '',
+                )
+            except Exception as e:
+                print(f'[EMAIL] Error notificando calificación a {submission.student.correo}: {e}')
+
+        threading.Thread(target=_notify_graded, daemon=True).start()
+
         return Response({
             'success': True,
             'message': f'Entrega calificada con {submission.calificacion}/10',
@@ -543,7 +583,22 @@ def submit_task(request, task_id):
     if submission.estado == 'pendiente':
         submission.estado = 'entregado'
         submission.save()
-    
+
+    # Notificar al docente por email (en background)
+    def _notify_teacher():
+        try:
+            send_submission_received_email(
+                docente_nombre=submission.task.docente.nombre_completo,
+                docente_correo=submission.task.docente.correo,
+                estudiante_nombre=submission.student.nombre_completo,
+                titulo_tarea=submission.task.titulo,
+                es_tardia=es_tardia,
+            )
+        except Exception as e:
+            print(f'[EMAIL] Error notificando entrega a docente: {e}')
+
+    threading.Thread(target=_notify_teacher, daemon=True).start()
+
     mensaje = f'{len(archivos_guardados)} archivo(s) subido(s) correctamente'
     if es_tardia:
         mensaje += ' (ENTREGA TARDÍA)'

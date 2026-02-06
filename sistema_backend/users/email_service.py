@@ -1,18 +1,94 @@
 """
 Servicio de Email para el Sistema de Gestión de Tareas
-Maneja recuperación de contraseña y recordatorios
-Usa Django Mail Backend para mayor confiabilidad
+Maneja recuperación de contraseña, notificaciones y recordatorios.
+Usa Django SMTP Backend con Gmail App Password.
 """
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.conf import settings
+import smtplib
 import logging
 
 logger = logging.getLogger(__name__)
 
 
+def _diagnose_smtp_error(error: Exception) -> str:
+    """Genera un mensaje de diagnóstico legible para errores SMTP comunes."""
+    err_str = str(error).lower()
+    err_type = type(error).__name__
+
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        return (
+            f"AUTENTICACIÓN FALLIDA ({err_type}): Gmail rechazó las credenciales. "
+            "Verifica que: 1) La cuenta tenga 2FA activado, "
+            "2) La App Password sea correcta (sin espacios), "
+            "3) La variable EMAIL_PASSWORD esté configurada en Railway."
+        )
+    if isinstance(error, smtplib.SMTPConnectError):
+        return (
+            f"CONEXIÓN FALLIDA ({err_type}): No se pudo conectar a smtp.gmail.com:587. "
+            "Verifica que Railway permita conexiones SMTP salientes."
+        )
+    if isinstance(error, (TimeoutError, smtplib.SMTPServerDisconnected)):
+        return (
+            f"TIMEOUT / DESCONEXIÓN ({err_type}): El servidor SMTP no respondió. "
+            "Puede ser un bloqueo de puerto en Railway o problema de red."
+        )
+    if isinstance(error, smtplib.SMTPRecipientsRefused):
+        return (
+            f"DESTINATARIO RECHAZADO ({err_type}): {err_str}. "
+            "Verifica que la dirección del destinatario sea válida."
+        )
+    if 'ssl' in err_str or 'certificate' in err_str:
+        return (
+            f"ERROR SSL/TLS ({err_type}): {err_str}. "
+            "Intenta cambiar EMAIL_USE_TLS/EMAIL_USE_SSL en settings."
+        )
+    return f"{err_type}: {error}"
+
+
+def test_smtp_connection() -> dict:
+    """
+    Prueba la conexión SMTP sin enviar un email.
+    Útil para diagnosticar problemas de configuración.
+    
+    Returns:
+        dict con 'success', 'message' y detalles de configuración.
+    """
+    config = {
+        'host': settings.EMAIL_HOST,
+        'port': settings.EMAIL_PORT,
+        'use_tls': settings.EMAIL_USE_TLS,
+        'use_ssl': settings.EMAIL_USE_SSL,
+        'user': settings.EMAIL_HOST_USER,
+        'password_set': bool(settings.EMAIL_HOST_PASSWORD),
+        'password_length': len(settings.EMAIL_HOST_PASSWORD) if settings.EMAIL_HOST_PASSWORD else 0,
+    }
+    logger.info(f"[SMTP TEST] Configuración: {config}")
+
+    try:
+        connection = get_connection(
+            backend=settings.EMAIL_BACKEND,
+            host=settings.EMAIL_HOST,
+            port=settings.EMAIL_PORT,
+            username=settings.EMAIL_HOST_USER,
+            password=settings.EMAIL_HOST_PASSWORD,
+            use_tls=settings.EMAIL_USE_TLS,
+            use_ssl=settings.EMAIL_USE_SSL,
+            timeout=settings.EMAIL_TIMEOUT,
+        )
+        connection.open()
+        connection.close()
+        logger.info("[SMTP TEST] ✅ Conexión SMTP exitosa")
+        return {'success': True, 'message': 'Conexión SMTP exitosa', 'config': config}
+    except Exception as e:
+        diagnosis = _diagnose_smtp_error(e)
+        logger.error(f"[SMTP TEST] ❌ {diagnosis}")
+        return {'success': False, 'message': diagnosis, 'config': config}
+
+
 def send_email(to_email: str, subject: str, html_content: str) -> bool:
     """
-    Enviar email usando Django Mail (configurado con Gmail SMTP)
+    Enviar email usando Django Mail (configurado con Gmail SMTP).
     
     Args:
         to_email: Correo del destinatario
@@ -23,29 +99,32 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
         bool: True si se envió correctamente, False en caso de error
     """
     try:
-        logger.info(f"[EMAIL] Enviando a: {to_email}")
-        
-        # Crear email con Django
+        logger.info(f"[EMAIL] Preparando envío a: {to_email}")
+        logger.debug(f"[EMAIL] From: {settings.EMAIL_HOST_USER} | "
+                      f"Host: {settings.EMAIL_HOST}:{settings.EMAIL_PORT} | "
+                      f"TLS: {settings.EMAIL_USE_TLS}")
+
+        # Texto plano como fallback
+        from django.utils.html import strip_tags
+        plain_text = strip_tags(html_content)
+
         email = EmailMultiAlternatives(
             subject=subject,
-            body='Este email requiere un cliente que soporte HTML.',
-            from_email=settings.EMAIL_HOST_USER,
+            body=plain_text,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             to=[to_email],
         )
-        
-        # Adjuntar versión HTML
         email.attach_alternative(html_content, "text/html")
-        
-        # Enviar
         email.send(fail_silently=False)
-        
-        logger.info(f"✅ Email enviado exitosamente a {to_email}")
+
+        logger.info(f"[EMAIL] ✅ Enviado exitosamente a {to_email}")
         print(f"✅ Email enviado exitosamente a {to_email}")
         return True
-        
+
     except Exception as e:
-        logger.error(f"❌ Error al enviar email a {to_email}: {type(e).__name__} - {str(e)}")
-        print(f"❌ Error al enviar email a {to_email}: {type(e).__name__} - {str(e)}")
+        diagnosis = _diagnose_smtp_error(e)
+        logger.error(f"[EMAIL] ❌ Falló envío a {to_email}: {diagnosis}")
+        print(f"❌ Error al enviar email a {to_email}: {diagnosis}")
         return False
 
 
