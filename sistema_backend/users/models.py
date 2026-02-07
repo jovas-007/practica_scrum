@@ -5,6 +5,54 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 
 
+class Materia(models.Model):
+    """
+    Modelo para representar las materias/asignaturas disponibles
+    """
+    codigo = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name='Código de materia'
+    )
+    nombre = models.CharField(
+        max_length=200,
+        verbose_name='Nombre de la materia'
+    )
+    nrc = models.CharField(
+        max_length=10,
+        verbose_name='NRC'
+    )
+    carreras_permitidas = models.JSONField(
+        default=list,
+        verbose_name='Carreras que pueden cursar esta materia'
+    )
+    
+    class Meta:
+        db_table = 'materias'
+        verbose_name = 'Materia'
+        verbose_name_plural = 'Materias'
+    
+    def __str__(self):
+        return f"{self.nombre} — NRC: {self.nrc}"
+    
+    @staticmethod
+    def get_materias_por_carrera(carrera_codigo):
+        """
+        Retorna las materias disponibles para una carrera específica
+        Compatible con SQLite y MySQL/PostgreSQL
+        """
+        from django.db import connection
+        
+        # Verificar si estamos usando SQLite
+        if 'sqlite' in connection.vendor:
+            # Para SQLite: filtrar manualmente usando Python
+            todas_materias = list(Materia.objects.all())
+            return [m for m in todas_materias if carrera_codigo in m.carreras_permitidas]
+        else:
+            # Para MySQL/PostgreSQL: usar contains
+            return Materia.objects.filter(carreras_permitidas__contains=[carrera_codigo])
+
+
 class UserManager(BaseUserManager):
     """Manager personalizado para el modelo User"""
     
@@ -49,6 +97,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         FEMENINO = 'Femenino', 'Femenino'
         OTRO = 'Otro', 'Otro'
     
+    class Carrera(models.TextChoices):
+        ICC = 'ICC', 'Ingeniería en Cs. de la Computación'
+        LCC = 'LCC', 'Licenciatura en Cs. de la Computación'
+        ITI = 'ITI', 'Ingeniería en Tecnologías de la Información'
+    
     id_usuario = models.CharField(
         max_length=50,
         unique=True,
@@ -75,7 +128,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name='Sexo'
     )
     carrera = models.CharField(
-        max_length=100,
+        max_length=10,
+        choices=Carrera.choices,
         blank=True,
         verbose_name='Carrera'
     )
@@ -84,6 +138,20 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=Rol.choices,
         default=Rol.ESTUDIANTE,
         verbose_name='Rol'
+    )
+    
+    # Relaciones con materias según el rol
+    materias_estudiante = models.ManyToManyField(
+        Materia,
+        blank=True,
+        related_name='estudiantes',
+        verbose_name='Materias del estudiante'
+    )
+    materias_docente = models.ManyToManyField(
+        Materia,
+        blank=True,
+        related_name='docentes',
+        verbose_name='Materias que imparte el docente'
     )
     
     # Campos requeridos por Django

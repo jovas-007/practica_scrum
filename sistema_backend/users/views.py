@@ -9,7 +9,7 @@ from datetime import timedelta
 import random
 import string
 
-from .models import User, RecoveryCode
+from .models import User, RecoveryCode, Materia
 from .serializers import (
     UserSerializer,
     RegisterSerializer,
@@ -17,6 +17,8 @@ from .serializers import (
     ForgotPasswordSerializer,
     VerifyCodeSerializer,
     ResetPasswordSerializer,
+    MateriaSerializer,
+    UpdateMateriasSerializer,
 )
 
 
@@ -336,3 +338,68 @@ def test_smtp(request):
     result = test_email_connection()
     http_status = status.HTTP_200_OK if result['success'] else status.HTTP_500_INTERNAL_SERVER_ERROR
     return Response(result, status=http_status)
+
+
+@api_view(['GET'])
+def get_materias_disponibles(request):
+    """
+    GET /api/materias?carrera=ICC
+    Obtener las materias disponibles, opcionalmente filtradas por carrera
+    """
+    carrera = request.query_params.get('carrera', None)
+    
+    if carrera:
+        # Filtrar materias por carrera
+        materias = Materia.get_materias_por_carrera(carrera)
+    else:
+        # Retornar todas las materias
+        materias = Materia.objects.all()
+    
+    serializer = MateriaSerializer(materias, many=True)
+    return Response({
+        'success': True,
+        'materias': serializer.data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH', 'PUT'])
+def update_materias(request):
+    """
+    PATCH/PUT /api/users/materias
+    Actualizar las materias de un usuario
+    """
+    serializer = UpdateMateriasSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        user = serializer.validated_data['user']
+        materias = serializer.validated_data['materias']
+        
+        # Actualizar materias según el rol
+        if user.rol == 'estudiante':
+            user.materias_estudiante.set(materias)
+        elif user.rol == 'docente':
+            user.materias_docente.set(materias)
+        
+        # Retornar el usuario actualizado
+        user_serializer = UserSerializer(user)
+        return Response({
+            'success': True,
+            'message': 'Materias actualizadas exitosamente',
+            'user': user_serializer.data
+        }, status=status.HTTP_200_OK)
+    
+    # Manejar errores
+    errors = serializer.errors
+    error_message = ''
+    
+    if 'materias' in errors:
+        error_message = str(errors['materias'][0])
+    elif 'id_usuario' in errors:
+        error_message = str(errors['id_usuario'][0])
+    else:
+        error_message = str(list(errors.values())[0][0])
+    
+    return Response({
+        'success': False,
+        'message': error_message
+    }, status=status.HTTP_400_BAD_REQUEST)

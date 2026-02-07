@@ -16,6 +16,10 @@ urlpatterns = [
     
     # Usuarios
     path('users', views.get_users, name='get-users'),
+    path('users/materias', views.update_materias, name='update-materias'),
+    
+    # Materias
+    path('materias', views.get_materias_disponibles, name='get-materias'),
     
     # Email / Recordatorios
     path('test-reminders', views.test_reminders, name='test-reminders'),
