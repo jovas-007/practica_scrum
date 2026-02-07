@@ -200,3 +200,64 @@ class RecoveryCode(models.Model):
     
     def __str__(self):
         return f"Código para {self.user.correo}"
+
+
+class EmailLog(models.Model):
+    """
+    Modelo para registrar todos los emails enviados por el sistema
+    """
+    class TipoEmail(models.TextChoices):
+        RECOVERY_CODE = 'recovery_code', 'Código de Recuperación'
+        TASK_ASSIGNED = 'task_assigned', 'Tarea Asignada'
+        SUBMISSION_RECEIVED = 'submission_received', 'Entrega Recibida'
+        TASK_GRADED = 'task_graded', 'Tarea Calificada'
+        TASK_REMINDER = 'task_reminder', 'Recordatorio de Tarea'
+        WELCOME = 'welcome', 'Bienvenida'
+    
+    class Estado(models.TextChoices):
+        ENVIADO = 'enviado', 'Enviado'
+        FALLIDO = 'fallido', 'Fallido'
+    
+    destinatario = models.EmailField(verbose_name='Correo destinatario')
+    asunto = models.CharField(max_length=255, verbose_name='Asunto del email')
+    tipo = models.CharField(
+        max_length=50,
+        choices=TipoEmail.choices,
+        verbose_name='Tipo de email'
+    )
+    estado = models.CharField(
+        max_length=20,
+        choices=Estado.choices,
+        default=Estado.ENVIADO,
+        verbose_name='Estado del envío'
+    )
+    mensaje_error = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Mensaje de error (si falló)'
+    )
+    fecha_envio = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Fecha y hora de envío'
+    )
+    brevo_message_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name='ID del mensaje en Brevo'
+    )
+    
+    class Meta:
+        db_table = 'email_logs'
+        verbose_name = 'Registro de Email'
+        verbose_name_plural = 'Registros de Emails'
+        ordering = ['-fecha_envio']
+        indexes = [
+            models.Index(fields=['-fecha_envio']),
+            models.Index(fields=['destinatario']),
+            models.Index(fields=['tipo']),
+            models.Index(fields=['estado']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_tipo_display()} → {self.destinatario} ({self.estado})"

@@ -22,18 +22,25 @@ BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 
 
 # ── Función principal de envío ────────────────────────────────────
-def send_email(to_email: str, subject: str, html_content: str) -> bool:
+def send_email(to_email: str, subject: str, html_content: str, email_type: str = None) -> bool:
     """
-    Enviar email vía Brevo HTTP API.
+    Enviar email vía Brevo HTTP API y registrar en la base de datos.
 
     Args:
         to_email: Correo del destinatario
         subject: Asunto del email
         html_content: Contenido HTML del email
+        email_type: Tipo de email para bitácora (recovery_code, task_assigned, etc.)
 
     Returns:
         bool: True si se envió correctamente
     """
+    from .models import EmailLog
+    
+    brevo_message_id = None
+    error_message = None
+    estado = 'fallido'
+    
     try:
         logger.info(f"[BREVO] Enviando a: {to_email} | Subject: {subject}")
 
@@ -58,26 +65,43 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
 
         if response.status_code == 201:
             data = response.json()
-            msg_id = data.get('messageId', '?')
-            logger.info(f"[BREVO] ✅ Email enviado a {to_email} (messageId: {msg_id})")
+            brevo_message_id = data.get('messageId', '')
+            estado = 'enviado'
+            logger.info(f"[BREVO] ✅ Email enviado a {to_email} (messageId: {brevo_message_id})")
             print(f"✅ Email enviado exitosamente a {to_email}")
-            return True
+            success = True
         else:
-            logger.error(
-                f"[BREVO] ❌ Error {response.status_code} enviando a {to_email}: "
-                f"{response.text}"
-            )
+            error_message = f"Error {response.status_code}: {response.text}"
+            logger.error(f"[BREVO] ❌ {error_message}")
             print(f"❌ Brevo error {response.status_code}: {response.text}")
-            return False
+            success = False
 
     except requests.exceptions.Timeout:
-        logger.error("[BREVO] ❌ Timeout conectando a api.brevo.com")
-        print("❌ Timeout conectando a Brevo API")
-        return False
+        error_message = "Timeout conectando a api.brevo.com"
+        logger.error(f"[BREVO] ❌ {error_message}")
+        print(f"❌ {error_message}")
+        success = False
     except Exception as e:
-        logger.error(f"[BREVO] ❌ Error inesperado: {type(e).__name__}: {e}")
+        error_message = f"{type(e).__name__}: {e}"
+        logger.error(f"[BREVO] ❌ Error inesperado: {error_message}")
         print(f"❌ Error inesperado enviando email: {e}")
-        return False
+        success = False
+    
+    # Registrar en bitácora
+    try:
+        EmailLog.objects.create(
+            destinatario=to_email,
+            asunto=subject[:255],  # Limitar longitud
+            tipo=email_type if email_type else 'recovery_code',  # Default si no se especifica
+            estado=estado,
+            mensaje_error=error_message[:500] if error_message else None,  # Limitar longitud
+            brevo_message_id=brevo_message_id
+        )
+    except Exception as log_error:
+        logger.error(f"[BITACORA] Error guardando log de email: {log_error}")
+        # No fallar el envío por un error de logging
+    
+    return success
 
 
 # ── Diagnóstico ──────────────────────────────────────────────────
@@ -186,7 +210,7 @@ def send_recovery_code_email(nombre_completo: str, correo: str, code: str) -> bo
     </div>
     """
     
-    return send_email(correo, subject, html_content)
+    return send_email(correo, subject, html_content, email_type='recovery_code')
 
 
 def send_task_assigned_email(nombre_completo: str, correo: str, 
@@ -235,7 +259,7 @@ def send_task_assigned_email(nombre_completo: str, correo: str,
     </div>
     """
     
-    return send_email(correo, subject, html_content)
+    return send_email(correo, subject, html_content, email_type='task_assigned')
 
 
 def send_submission_received_email(docente_nombre: str, docente_correo: str,
@@ -289,7 +313,7 @@ def send_submission_received_email(docente_nombre: str, docente_correo: str,
     </div>
     """
     
-    return send_email(docente_correo, subject, html_content)
+    return send_email(docente_correo, subject, html_content, email_type='submission_received')
 
 
 def send_task_graded_email(estudiante_nombre: str, estudiante_correo: str,
@@ -352,7 +376,7 @@ def send_task_graded_email(estudiante_nombre: str, estudiante_correo: str,
     </div>
     """
     
-    return send_email(estudiante_correo, subject, html_content)
+    return send_email(estudiante_correo, subject, html_content, email_type='task_graded')
 
 
 def send_task_reminder_email(nombre_completo: str, correo: str, 
@@ -399,7 +423,7 @@ def send_task_reminder_email(nombre_completo: str, correo: str,
     </div>
     """
     
-    return send_email(correo, subject, html_content)
+    return send_email(correo, subject, html_content, email_type='task_reminder')
 
 
 def send_welcome_email(nombre_completo: str, correo: str, rol: str) -> bool:
@@ -460,7 +484,7 @@ def send_welcome_email(nombre_completo: str, correo: str, rol: str) -> bool:
     </div>
     """
     
-    return send_email(correo, subject, html_content)
+    return send_email(correo, subject, html_content, email_type='welcome')
 
 
 def _get_features_by_role(rol: str) -> str:
