@@ -584,20 +584,20 @@ def submit_task(request, task_id):
         submission.estado = 'entregado'
         submission.save()
 
-    # Notificar al docente por email (en background)
-    def _notify_teacher():
-        try:
-            send_submission_received_email(
-                docente_nombre=submission.task.docente.nombre_completo,
-                docente_correo=submission.task.docente.correo,
-                estudiante_nombre=submission.student.nombre_completo,
-                titulo_tarea=submission.task.titulo,
-                es_tardia=es_tardia,
-            )
-        except Exception as e:
-            print(f'[EMAIL] Error notificando entrega a docente: {e}')
-
-    threading.Thread(target=_notify_teacher, daemon=True).start()
+    # # Notificar al docente por email (en background) - DESACTIVADO
+    # def _notify_teacher():
+    #     try:
+    #         send_submission_received_email(
+    #             docente_nombre=submission.task.docente.nombre_completo,
+    #             docente_correo=submission.task.docente.correo,
+    #             estudiante_nombre=submission.student.nombre_completo,
+    #             titulo_tarea=submission.task.titulo,
+    #             es_tardia=es_tardia,
+    #         )
+    #     except Exception as e:
+    #         print(f'[EMAIL] Error notificando entrega a docente: {e}')
+    # 
+    # threading.Thread(target=_notify_teacher, daemon=True).start()
 
     mensaje = f'{len(archivos_guardados)} archivo(s) subido(s) correctamente'
     if es_tardia:
