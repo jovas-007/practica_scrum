@@ -220,6 +220,46 @@
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
         }
 
+        /* Estilo para el botón de descarga de material del profesor */
+        .resource-download-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 2px solid #86efac;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #059669;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.1);
+        }
+
+        .resource-download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+            border-color: #4ade80;
+        }
+
+        .resource-download-btn .icon {
+            font-size: 32px;
+        }
+
+        .resource-download-btn .info {
+            flex: 1;
+        }
+
+        .resource-download-btn .info strong {
+            display: block;
+            color: #065f46;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .resource-download-btn .info span {
+            font-size: 12px;
+            color: #059669;
+        }
         .btn-success {
             background: linear-gradient(135deg, #059669 0%, #10b981 100%);
             color: white;
@@ -1274,10 +1314,17 @@
         function mostrarModalTarea(submission) {
             // Título
             document.getElementById('modalTareaTitulo').textContent = submission.tarea_titulo;
-            
-            // Descripción
-            document.getElementById('tareaDescripcion').textContent = 
-                submission.tarea_descripcion || 'Sin descripción';
+
+            // Descripción con nombre del profesor
+            document.getElementById('tareaDescripcion').innerHTML = `
+                <div class="task-info-grid" style="margin-bottom: 15px;">
+                    <div class="info-item">
+                        <span class="label" style="font-weight: 600; color: #64748b;">👨‍🏫 Profesor:</span>
+                        <span class="value" style="color: #1e293b; font-weight: 500;">${submission.docente_nombre || 'No asignado'}</span>
+                    </div>
+                </div>
+                <p>${submission.tarea_descripcion || 'Sin descripción'}</p>
+            `;
             
             // Fecha límite
             document.getElementById('fechaLimite').textContent = formatDate(submission.tarea_fecha_entrega);
@@ -1286,15 +1333,15 @@
             // Estado
             const estadoEl = document.getElementById('estadoTarea');
             if (submission.tarea_esta_vencida) {
-                estadoEl.innerHTML = '<span style="color: #dc2626;"> Esta tarea ha vencido</span>';
+                estadoEl.innerHTML = '<span style="color: #dc2626;">⚠️ Esta tarea ha vencido</span>';
             } else {
-                estadoEl.innerHTML = '<span style="color: #059669;"> Tiempo disponible para entregar</span>';
+                estadoEl.innerHTML = '<span style="color: #059669;">✅ Tiempo disponible para entregar</span>';
             }
-
+        
             // Recursos del docente
             const seccionRecursos = document.getElementById('seccionRecursos');
             const recursosHtml = [];
-            
+
             if (submission.tarea_url_recurso) {
                 recursosHtml.push(`
                     <a href="${submission.tarea_url_recurso}" target="_blank" class="resource-link">
@@ -1302,14 +1349,38 @@
                     </a>
                 `);
             }
-            
+
+            // AGREGAR ARCHIVO ADJUNTO DEL PROFESOR SI EXISTE
             if (submission.tarea_archivo_adjunto) {
+                console.log('📎 Archivo adjunto encontrado:', submission.tarea_archivo_adjunto);
+                console.log('📄 Nombre del archivo:', submission.tarea_archivo_nombre);
+            
+                const fileUrl = submission.tarea_archivo_adjunto;
+                const fileName = submission.tarea_archivo_nombre || "Material del profesor";
+            
                 recursosHtml.push(`
-                    <a href="${API_URL.replace('/api', '')}${submission.tarea_archivo_adjunto}" 
-                       target="_blank" class="resource-link" style="margin-left: 10px;">
-                         Descargar archivo adjunto
-                    </a>
+                    <div style="margin-top: 10px;">
+                        <h5 style="color: #059669; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                            <span>📎</span>
+                            <span>Material de Apoyo del Profesor</span>
+                        </h5>
+                        <a href="${fileUrl}" 
+                           target="_blank" 
+                           download 
+                           style="display: flex; align-items: center; gap: 12px; padding: 15px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #86efac; border-radius: 10px; text-decoration: none; color: #059669; transition: all 0.3s; box-shadow: 0 2px 8px rgba(5, 150, 105, 0.1);"
+                           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(5, 150, 105, 0.2)'"
+                           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(5, 150, 105, 0.1)'">
+                            <span style="font-size: 32px;">📁</span>
+                            <div style="flex: 1;">
+                                <strong style="display: block; color: #065f46; font-size: 14px; margin-bottom: 4px;">${fileName}</strong>
+                                <span style="font-size: 12px; color: #059669;">Click para abrir o descargar</span>
+                            </div>
+                            <span style="color: #059669; font-size: 20px;">⬇️</span>
+                        </a>
+                    </div>
                 `);
+            } else {
+                console.log('⚠️ No hay archivo adjunto en esta tarea');
             }
 
             if (recursosHtml.length > 0) {
@@ -1342,14 +1413,16 @@
                 seccionCalificacion.style.display = 'none';
             }
 
-            // Sección de entrega
+            // Sección de entrega - SOLO MOSTRAR SI ESTÁ PENDIENTE
             const seccionEntrega = document.getElementById('seccionEntrega');
-            if (submission.puede_entregar) {
+            if (submission.estado === 'pendiente' && submission.puede_entregar) {
+                // Solo mostrar si está pendiente Y puede entregar
                 seccionEntrega.style.display = 'block';
                 archivosParaSubir = [];
                 document.getElementById('archivosSeleccionados').innerHTML = '';
                 document.getElementById('btnEnviar').disabled = true;
             } else {
+                // Ocultar si ya está entregada o calificada
                 seccionEntrega.style.display = 'none';
             }
 

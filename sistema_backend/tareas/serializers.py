@@ -46,7 +46,9 @@ class SubmissionStudentSerializer(serializers.ModelSerializer):
     tarea_descripcion = serializers.CharField(source='task.descripcion', read_only=True)
     tarea_fecha_entrega = serializers.DateTimeField(source='task.fecha_entrega', read_only=True)
     tarea_puntos_maximos = serializers.IntegerField(source='task.puntos_maximos', read_only=True)
-    tarea_archivo_adjunto = serializers.FileField(source='task.archivo_adjunto', read_only=True)
+    tarea_archivo_adjunto = serializers.SerializerMethodField()
+    tarea_archivo_nombre = serializers.SerializerMethodField()
+    docente_nombre = serializers.CharField(source='task.docente.nombre_completo', read_only=True)
     tarea_url_recurso = serializers.URLField(source='task.url_recurso', read_only=True)
     tarea_esta_vencida = serializers.BooleanField(source='task.esta_vencida', read_only=True)
     puede_entregar = serializers.SerializerMethodField()
@@ -57,12 +59,27 @@ class SubmissionStudentSerializer(serializers.ModelSerializer):
             'id', 'task_id', 'estado', 'fecha_creacion',
             'calificacion', 'comentario_docente', 'fecha_calificacion',
             'archivos', 'tarea_titulo', 'tarea_descripcion', 'tarea_fecha_entrega',
-            'tarea_puntos_maximos', 'tarea_archivo_adjunto', 'tarea_url_recurso',
+            'tarea_puntos_maximos', 'tarea_archivo_adjunto', 'tarea_archivo_nombre', 'docente_nombre', 'tarea_url_recurso',
             'tarea_esta_vencida', 'puede_entregar'
         ]
     
     def get_puede_entregar(self, obj):
         return obj.task.puede_recibir_entregas
+    
+    def get_tarea_archivo_nombre(self, obj):
+        if obj.task.archivo_adjunto:
+            # Retorna solo el nombre del archivo, eliminando la ruta de carpetas
+            import os
+            return os.path.basename(obj.task.archivo_adjunto.name)
+        return None
+    
+    def get_tarea_archivo_adjunto(self, obj):
+        if obj.task.archivo_adjunto:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.task.archivo_adjunto.url)
+            return obj.task.archivo_adjunto.url
+        return None
 
 
 class TaskListSerializer(serializers.ModelSerializer):

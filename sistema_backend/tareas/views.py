@@ -486,7 +486,7 @@ def my_task_detail(request, task_id):
             'message': 'Tarea no encontrada o no asignada'
         }, status=status.HTTP_404_NOT_FOUND)
     
-    serializer = SubmissionStudentSerializer(submission)
+    serializer = SubmissionStudentSerializer(submission, context={'request': request})
     
     return Response({
         'success': True,
