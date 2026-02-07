@@ -154,11 +154,11 @@ def send_recovery_code_email(nombre_completo: str, correo: str, code: str) -> bo
     Returns:
         bool: True si se envió correctamente
     """
-    subject = '🔑 Código de Recuperación - Sistema de Gestión de Tareas'
+    subject = 'Código de Recuperación - Sistema de Gestión de Tareas'
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">🔑 Código de Recuperación de Contraseña</h2>
+        <h2 style="color: #2c3e50;">Código de Recuperación de Contraseña</h2>
         <p>Hola <strong>{nombre_completo}</strong>,</p>
         
         <p>Has solicitado recuperar tu contraseña. Tu código de verificación es:</p>
@@ -168,7 +168,7 @@ def send_recovery_code_email(nombre_completo: str, correo: str, code: str) -> bo
         </div>
         
         <p style="color: #e74c3c; font-weight: bold;">
-            ⚠️ Este código expira en 15 minutos.
+            IMPORTANTE: Este código expira en 15 minutos.
         </p>
         
         <p>Ingresa este código en la página de recuperación para continuar.</p>
@@ -181,6 +181,8 @@ def send_recovery_code_email(nombre_completo: str, correo: str, code: str) -> bo
             Este es un mensaje automático del Sistema de Gestión de Tareas Escolares - BUAP.
             <br>Por favor, no respondas a este correo.
         </p>
+        
+        {_get_email_footer()}
     </div>
     """
     
@@ -204,23 +206,23 @@ def send_task_assigned_email(nombre_completo: str, correo: str,
     Returns:
         bool: True si se envió correctamente
     """
-    subject = f'📝 Nueva Tarea Asignada: {titulo_tarea}'
+    subject = f'Nueva Tarea Asignada: {titulo_tarea}'
     
     # Truncar descripción si es muy larga
     desc_preview = descripcion[:200] + '...' if len(descripcion) > 200 else descripcion
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">📝 Nueva Tarea Asignada</h2>
+        <h2 style="color: #2c3e50;">Nueva Tarea Asignada</h2>
         <p>Hola <strong>{nombre_completo}</strong>,</p>
         
         <p>Se te ha asignado una nueva tarea:</p>
         
         <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #27ae60; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #27ae60;">{titulo_tarea}</h3>
-            <p><strong>📖 Descripción:</strong> {desc_preview}</p>
-            <p><strong>📅 Fecha de entrega:</strong> {fecha_entrega}</p>
-            <p><strong>👨‍🏫 Docente:</strong> {docente_nombre}</p>
+            <p><strong>Descripción:</strong> {desc_preview}</p>
+            <p><strong>Fecha de entrega:</strong> {fecha_entrega}</p>
+            <p><strong>Docente:</strong> {docente_nombre}</p>
         </div>
         
         <p>Ingresa al sistema para ver los detalles completos y entregar tu trabajo.</p>
@@ -228,6 +230,8 @@ def send_task_assigned_email(nombre_completo: str, correo: str,
         <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">
             Sistema de Gestión de Tareas Escolares - BUAP
         </p>
+        
+        {_get_email_footer()}
     </div>
     """
     
@@ -250,27 +254,27 @@ def send_submission_received_email(docente_nombre: str, docente_correo: str,
     Returns:
         bool: True si se envió correctamente
     """
-    tardia_text = " ⏰ (TARDÍA)" if es_tardia else ""
-    subject = f'📬 Entrega Recibida: {titulo_tarea}{tardia_text}'
+    tardia_text = " (TARDÍA)" if es_tardia else ""
+    subject = f'Entrega Recibida: {titulo_tarea}{tardia_text}'
     
     tardia_alert = ""
     if es_tardia:
         tardia_alert = """
         <div style="background-color: #fff3cd; padding: 10px; border-left: 4px solid #f39c12; margin: 15px 0;">
-            <p style="margin: 0; color: #856404;">⏰ <strong>Nota:</strong> Esta entrega fue realizada después de la fecha límite.</p>
+            <p style="margin: 0; color: #856404;"><strong>Nota:</strong> Esta entrega fue realizada después de la fecha límite.</p>
         </div>
         """
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">📬 Nueva Entrega Recibida</h2>
+        <h2 style="color: #2c3e50;">Nueva Entrega Recibida</h2>
         <p>Hola <strong>{docente_nombre}</strong>,</p>
         
         <p>Un estudiante ha entregado una tarea:</p>
         
         <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #3498db; margin: 20px 0;">
-            <p><strong>👤 Estudiante:</strong> {estudiante_nombre}</p>
-            <p><strong>📝 Tarea:</strong> {titulo_tarea}</p>
+            <p><strong>Estudiante:</strong> {estudiante_nombre}</p>
+            <p><strong>Tarea:</strong> {titulo_tarea}</p>
         </div>
         
         {tardia_alert}
@@ -280,6 +284,8 @@ def send_submission_received_email(docente_nombre: str, docente_correo: str,
         <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">
             Sistema de Gestión de Tareas Escolares - BUAP
         </p>
+        
+        {_get_email_footer()}
     </div>
     """
     
@@ -306,34 +312,31 @@ def send_task_graded_email(estudiante_nombre: str, estudiante_correo: str,
     # Color según calificación
     if calificacion >= 8:
         color = '#27ae60'  # Verde
-        emoji = '🌟'
     elif calificacion >= 6:
         color = '#f39c12'  # Amarillo
-        emoji = '👍'
     else:
         color = '#e74c3c'  # Rojo
-        emoji = '📚'
     
-    subject = f'{emoji} Tu tarea fue calificada: {calificacion}/{puntos_maximos}'
+    subject = f'Tu tarea fue calificada: {calificacion}/{puntos_maximos}'
     
     comentario_html = ""
     if comentario:
         comentario_html = f"""
         <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #7f8c8d; margin: 15px 0;">
-            <p style="margin: 0;"><strong>💬 Comentario del docente:</strong></p>
+            <p style="margin: 0;"><strong>Comentario del docente:</strong></p>
             <p style="margin: 10px 0 0 0; font-style: italic;">"{comentario}"</p>
         </div>
         """
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">{emoji} Tarea Calificada</h2>
+        <h2 style="color: #2c3e50;">Tarea Calificada</h2>
         <p>Hola <strong>{estudiante_nombre}</strong>,</p>
         
         <p>Tu tarea ha sido calificada:</p>
         
         <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid {color}; margin: 20px 0; text-align: center;">
-            <p style="margin: 0 0 10px 0;"><strong>📝 {titulo_tarea}</strong></p>
+            <p style="margin: 0 0 10px 0;"><strong>{titulo_tarea}</strong></p>
             <h1 style="color: {color}; font-size: 48px; margin: 0;">{calificacion}/{puntos_maximos}</h1>
         </div>
         
@@ -344,6 +347,8 @@ def send_task_graded_email(estudiante_nombre: str, estudiante_correo: str,
         <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">
             Sistema de Gestión de Tareas Escolares - BUAP
         </p>
+        
+        {_get_email_footer()}
     </div>
     """
     
@@ -365,19 +370,19 @@ def send_task_reminder_email(nombre_completo: str, correo: str,
     Returns:
         bool: True si se envió correctamente
     """
-    subject = f'⏰ Recordatorio: "{titulo_tarea}" vence mañana'
+    subject = f'Recordatorio: "{titulo_tarea}" vence mañana'
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #e67e22;">⏰ Recordatorio de Tarea</h2>
+        <h2 style="color: #e67e22;">Recordatorio de Tarea</h2>
         <p>Hola <strong>{nombre_completo}</strong>,</p>
         
         <p>Te recordamos que tienes una tarea pendiente que vence <strong>mañana</strong>:</p>
         
         <div style="background-color: #fff3cd; padding: 20px; border-left: 4px solid #f39c12; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #856404;">{titulo_tarea}</h3>
-            <p><strong>📅 Fecha de entrega:</strong> {fecha_entrega}</p>
-            <p><strong>⏳ Tiempo restante:</strong> Menos de 24 horas</p>
+            <p><strong>Fecha de entrega:</strong> {fecha_entrega}</p>
+            <p><strong>Tiempo restante:</strong> Menos de 24 horas</p>
         </div>
         
         <p style="color: #e74c3c; font-weight: bold;">
@@ -389,6 +394,8 @@ def send_task_reminder_email(nombre_completo: str, correo: str,
         <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">
             Sistema de Gestión de Tareas Escolares - BUAP
         </p>
+        
+        {_get_email_footer()}
     </div>
     """
     
@@ -407,25 +414,18 @@ def send_welcome_email(nombre_completo: str, correo: str, rol: str) -> bool:
     Returns:
         bool: True si se envió correctamente
     """
-    # Personalizar mensaje según el rol
-    rol_emoji = {
-        'estudiante': '🎓',
-        'docente': '👨\u200d🏫',
-        'admin': '👑',
-    }.get(rol, '👤')
-    
     rol_texto = {
         'estudiante': 'estudiante',
         'docente': 'docente',
         'admin': 'administrador',
     }.get(rol, 'usuario')
     
-    subject = f'{rol_emoji} ¡Bienvenido al Sistema de Gestión de Tareas!'
+    subject = '¡Bienvenido al Sistema de Gestión de Tareas!'
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 32px;">{rol_emoji} ¡Bienvenido!</h1>
+            <h1 style="color: white; margin: 0; font-size: 32px;">¡Bienvenido!</h1>
         </div>
         
         <div style="padding: 30px; background-color: #ffffff;">
@@ -434,7 +434,7 @@ def send_welcome_email(nombre_completo: str, correo: str, rol: str) -> bool:
             <p>Tu cuenta de <strong>{rol_texto}</strong> ha sido creada exitosamente en el Sistema de Gestión de Tareas Escolares de la BUAP.</p>
             
             <div style="background-color: #f0f4ff; padding: 20px; border-left: 4px solid #667eea; margin: 25px 0;">
-                <p style="margin: 0;"><strong>📧 Tu correo registrado:</strong></p>
+                <p style="margin: 0;"><strong>Tu correo registrado:</strong></p>
                 <p style="margin: 5px 0 0 0; color: #667eea; font-size: 18px;">{correo}</p>
             </div>
             
@@ -454,6 +454,8 @@ def send_welcome_email(nombre_completo: str, correo: str, rol: str) -> bool:
                 Sistema de Gestión de Tareas Escolares - BUAP
                 <br>Este es un mensaje automático, por favor no respondas a este correo.
             </p>
+            
+            {_get_email_footer()}
         </div>
     </div>
     """
@@ -467,22 +469,35 @@ def _get_features_by_role(rol: str) -> str:
     """
     features = {
         'estudiante': """
-                <li>📝 Ver y entregar tus tareas asignadas</li>
-                <li>📊 Consultar tus calificaciones</li>
-                <li>⏰ Recibir recordatorios antes de las fechas de entrega</li>
-                <li>📬 Recibir notificaciones de nuevas tareas y calificaciones</li>
+                <li>Ver y entregar tus tareas asignadas</li>
+                <li>Consultar tus calificaciones</li>
+                <li>Recibir recordatorios antes de las fechas de entrega</li>
+                <li>Recibir notificaciones de nuevas tareas y calificaciones</li>
         """,
         'docente': """
-                <li>➕ Crear y asignar tareas a tus estudiantes</li>
-                <li>✅ Revisar y calificar entregas</li>
-                <li>📊 Ver el progreso de tus grupos</li>
-                <li>📬 Recibir notificaciones de entregas</li>
+                <li>Crear y asignar tareas a tus estudiantes</li>
+                <li>Revisar y calificar entregas</li>
+                <li>Ver el progreso de tus grupos</li>
+                <li>Recibir notificaciones de entregas</li>
         """,
         'admin': """
-                <li>👥 Gestionar usuarios del sistema</li>
-                <li>📋 Supervisar todas las tareas y entregas</li>
-                <li>📊 Acceder a estadísticas completas</li>
-                <li>⚙️ Configurar el sistema</li>
+                <li>Gestionar usuarios del sistema</li>
+                <li>Supervisar todas las tareas y entregas</li>
+                <li>Acceder a estadísticas completas</li>
+                <li>Configurar el sistema</li>
         """
     }
-    return features.get(rol, '<li>📱 Acceder al sistema</li>')
+    return features.get(rol, '<li>Acceder al sistema</li>')
+
+
+def _get_email_footer() -> str:
+    """
+    Retorna el footer HTML con los créditos del desarrollador
+    """
+    return """
+        <div style="border-top: 1px solid #e0e0e0; margin-top: 20px; padding-top: 15px; text-align: center;">
+            <p style="color: #94a3b8; font-size: 11px; margin: 0;">
+                Módulo desarrollado por <strong>Sergio Abraham Muñoz Diaz</strong>
+            </p>
+        </div>
+    """
